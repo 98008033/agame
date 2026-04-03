@@ -24,17 +24,27 @@
 
 | 文件 | 内容 | 优先级 |
 |------|------|--------|
+| [00-team-workflow.md](PLAN/00-team-workflow.md) | **团队协作规范与工作文档** | P0 |
 | [01-overview.md](PLAN/01-overview.md) | 核心概念、游戏定位、体验节奏 | P0 |
 | [02-world-setting.md](PLAN/02-world-setting.md) | 世界观、地理、历史、创世神话 | P0 |
 | [03-factions.md](PLAN/03-factions.md) | 四阵营设定（苍龙/霜狼/金雀花/边境） | P0 |
 | [04-character-system.md](PLAN/04-character-system.md) | 角色体系（属性/声望/效忠） | P0 |
-| [05-agent-architecture.md](PLAN/05-agent-architecture.md) | Agent架构（Chronos/国家Agent） | P0 |
+| [05-agent-architecture.md](PLAN/05-agent-architecture.md) | Agent架构概览 | P0 |
 | [06-gameplay-loop.md](PLAN/06-gameplay-loop.md) | 时间系统、日常循环 | P0 |
 | [08-event-system.md](PLAN/08-event-system.md) | 事件系统、事件链 | P0 |
 | [10-llm-integration.md](PLAN/10-llm-integration.md) | LLM集成、Prompt设计 | P0 |
 | [11-tech-architecture.md](PLAN/11-tech-architecture.md) | 技术栈、状态存储 | P0 |
 | [14-narrative-system.md](PLAN/14-narrative-system.md) | 叙事体系（晨报/史书） | **P0** |
-| [15-priority-web-narrative.md](PLAN/15-priority-web-narrative.md) | **Web优先与叙事核心设计（必读）** | **P0** |
+| [15-priority-web-narrative.md](PLAN/15-priority-web-narrative.md) | **Web优先与叙事核心设计** | **P0** |
+
+### 🆕 系统详细设计（团队交付）
+
+| 文件 | 内容 | 状态 |
+|------|------|------|
+| [16-economy-social-system.md](PLAN/16-economy-social-system.md) | **经济与社会系统**（双资源+社会关系） | ✅ |
+| [17-visual-style-guide.md](PLAN/17-visual-style-guide.md) | **视觉风格指南**（水墨风+色彩系统+UI规范） | ✅ |
+| [20-narrative-system-detailed.md](PLAN/20-narrative-system-detailed.md) | **小说叙事系统**（每日小说+实时造英雄） | ✅ |
+| [docs/agent-architecture.md](docs/agent-architecture.md) | **多层级Agent技术架构**（四级Agent+Plan模式） | ✅ |
 
 ### 📚 扩展设计文档
 
@@ -49,22 +59,58 @@
 
 ---
 
+## 核心设计亮点
+
+### 🎯 四级Agent架构
+
+```
+世界级 (Chronos)     → 每日1次，世界平衡、历史推进
+    ↓
+国家级 (天命司等)    → 每6小时，国家政策、外交决策
+    ↓
+城邦级 (地区领袖)    → 每12小时，地方治理、资源调配
+    ↓
+普通级 (NPC)         → 事件触发，日常行为、玩家交互
+```
+
+每层使用不同参数规模的模型，国产模型优先。
+
+### 📖 每日小说叙事
+
+- 每日生成3000-5000字历史演义风格小说章节
+- "实时造英雄"：四国各1个主角NPC，实时生成传记
+- 玩家行动被自然记录在叙事中
+
+### 💰 双资源经济系统
+
+- **金币**：物质基础，用于建设/招募/交易
+- **影响力**：社交资本，用于外交/开启事件
+- 社会关系网络：7级关系 + 4级阶层
+
+### 🎨 水墨风视觉
+
+- 中国水墨风 + 轻度奇幻元素
+- 主色调：墨色 `#1A1A1A`、宣纸黄 `#F5F0E6`、朱砂红 `#C73E3A`
+- 四国阵营专属配色方案
+
+---
+
 ## 快速开始
 
 ### 当前开发重点
 
 **MVP 阶段（8周）**：
-1. **叙事引擎** - 晨报生成、事件呈现
+1. **叙事引擎** - 晨报生成、小说章节输出
 2. **决策系统** - 二选一/三选一选择面板
-3. **Agent 系统** - Chronos + 简化国家Agent
-4. **Web 前端** - 纯文字为主的阅读界面
+3. **Agent 系统** - 四级Agent + Plan模式
+4. **Web 前端** - 水墨风阅读界面
 
 ### 技术栈
 
 ```
 前端：React + TypeScript + Tailwind CSS
 后端：Node.js + Express + PostgreSQL + Redis
-LLM：Claude API（分层调用）
+LLM：国产模型优先（文心一言/通义千问/GLM-4）
 部署：Vercel / Railway
 ```
 
