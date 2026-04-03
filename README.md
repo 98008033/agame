@@ -43,6 +43,7 @@
 |------|------|------|
 | [16-economy-social-system.md](PLAN/16-economy-social-system.md) | **经济与社会系统**（双资源+社会关系） | ✅ |
 | [17-visual-style-guide.md](PLAN/17-visual-style-guide.md) | **视觉风格指南**（水墨风+色彩系统+UI规范） | ✅ |
+| [19-skill-system.md](PLAN/19-skill-system.md) | **技能系统设计**（三条技能线+叙事对应） | ✅ |
 | [20-narrative-system-detailed.md](PLAN/20-narrative-system-detailed.md) | **小说叙事系统**（每日小说+实时造英雄） | ✅ |
 | [docs/agent-architecture.md](docs/agent-architecture.md) | **多层级Agent技术架构**（四级Agent+Plan模式） | ✅ |
 
@@ -92,6 +93,13 @@
 - 中国水墨风 + 轻度奇幻元素
 - 主色调：墨色 `#1A1A1A`、宣纸黄 `#F5F0E6`、朱砂红 `#C73E3A`
 - 四国阵营专属配色方案
+
+### ⚔️ 技能系统
+
+- **三条技能线**：谋略（政治外交）、武力（战斗军事）、经营（商业工艺）
+- **4级技能等级**：入门→精通→大师→传奇
+- **技能即叙事钥匙**：不同技能等级解锁不同的事件分支
+- MVP简化版：7个核心技能
 
 ---
 
