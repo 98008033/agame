@@ -491,4 +491,4 @@ function canAccessNarrativeBranch(
 
 *文档版本：像素奇幻版 v1.0*
 *更新日期：2026-04-03*
-*适用版本：三界风云录 Web MVP*
+*适用版本：Agame Web MVP*

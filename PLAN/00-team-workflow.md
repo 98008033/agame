@@ -596,7 +596,7 @@ interface Example {
 
 | 项目 | 信息 |
 |------|------|
-| **项目名称** | 三界风云录 |
+| **项目名称** | Agame |
 | **项目类型** | Web-first 叙事游戏 |
 | **项目仓库** | https://github.com/98008033/agame |
 | **文档目录** | `/Users/hyc/Documents/agame/PLAN/` |

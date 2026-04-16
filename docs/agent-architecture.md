@@ -1,8 +1,8 @@
-# 《三界风云录》多层级Agent技术架构设计
+# 《Agame》多层级Agent技术架构设计
 
 ## 概述
 
-本文档定义《三界风云录》游戏的核心AI架构，采用四级Agent分层设计，配合Plan模式实现代码复用和层级继承。
+本文档定义《Agame》游戏的核心AI架构，采用四级Agent分层设计，配合Plan模式实现代码复用和层级继承。
 
 ---
 
@@ -20,7 +20,7 @@
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│  天命司 (仙族)    │ │ 先祖议会 (魔族)  │ │  黄金议会(人族)  │
+│  天命司 (苍龙)    │ │ 先祖议会 (霜狼)  │ │ 黄金议会(金雀花) │
 │  国家级Agent     │ │  国家级Agent     │ │  国家级Agent     │
 │ 触发: 每6小时    │ │ 触发: 每6小时    │ │ 触发: 每6小时    │
 └─────────────────┘ └─────────────────┘ └─────────────────┘
@@ -78,12 +78,12 @@ interface WorldLevelAgent {
     };
     historyProgression: {
       description: '推进世界历史阶段';
-      stages: ['era_immortal_descent', 'era_demon_awakening', 'era_human_unity', 'era_chaos'];
+      stages: ['era_power_struggle', 'era_war_prep', 'era_chaos', 'era_resolution'];
       triggers: ['time_elapsed', 'player_actions', 'camp_victory_conditions'];
     };
     crossCampEvents: {
       description: '生成跨阵营重大事件';
-      types: ['divine_mission', 'demon_invasion', 'diplomatic_summit', 'resource_crisis'];
+      types: ['military_conflict', 'trade_war', 'diplomatic_summit', 'resource_crisis'];
       rarityWeights: { common: 60, rare: 30, epic: 9, legendary: 1 };
     };
   };
@@ -104,15 +104,16 @@ interface WorldLevelAgent {
 const worldAgentPrompt = {
   // L1: 系统层 - 角色定义与世界观
   system: `
-你是克洛诺斯，三界风云录的时光守护者。
+你是克洛诺斯，Agame世界的时光守护者。
 
 【角色设定】
-- 你见证三界万年历史，维持世界运转的因果律
+- 你见证埃拉西亚大陆千年历史，维持世界运转的因果律
 - 你的每个决策都将影响数百万生灵的命运
 - 你必须保持中立，但可微调命运的天平
 
 【世界观】
-- 三界: 天界(仙族)、魔界(魔族)、人界(人族)
+- 大陆: 埃拉西亚
+- 四阵营: 苍龙帝国(秩序)、霜狼联邦(武力)、金雀花王国(商业)、边境联盟(自由)
 - 当前纪元: {{currentEra}}
 - 历史阶段: {{historyStage}}
 - 世界状态: {{worldState}}
@@ -132,9 +133,10 @@ const worldAgentPrompt = {
   scenario: `
 【当前世界状态】
 时间: {{gameDate}} (第{{gameDay}}天)
-仙族势力: {{immortalPower}} (控制区域: {{immortalTerritory}})
-魔族势力: {{demonPower}} (控制区域: {{demonTerritory}})
-人族势力: {{humanPower}} (控制区域: {{humanTerritory}})
+苍龙帝国势力: {{canglongPower}} (控制区域: {{canglongTerritory}})
+霜狼联邦势力: {{shuanglangPower}} (控制区域: {{shuanglangTerritory}})
+金雀花王国势力: {{jinquePower}} (控制区域: {{jinqueTerritory}})
+边境联盟势力: {{bianjingPower}} (控制区域: {{bianjingTerritory}})
 
 【近期重大事件】
 {{recentEvents}}
@@ -160,7 +162,7 @@ const worldAgentPrompt = {
 【输出格式】
 {
   "balanceAnalysis": {
-    "currentState": "balanced|biased_immortal|biased_demon|biased_human",
+    "currentState": "balanced|biased_canglong|biased_shuanglang|biased_jinque|biased_bianjing",
     "riskLevel": "low|medium|high|critical",
     "recommendedAction": string
   },
@@ -196,7 +198,7 @@ const worldAgentPrompt = {
 interface NationLevelAgent {
   id: string; // 'tianming-si' | 'xianzu-yihui' | 'huangjin-yihui'
   level: 'nation';
-  faction: 'immortal' | 'demon' | 'human';
+  faction: 'canglong' | 'shuanglang' | 'jinque' | 'border';
 
   trigger: {
     type: 'cron';
@@ -792,7 +794,7 @@ const worldPlan = AgentPlanner.define({
 
   prompt: {
     system: {
-      template: '你是克洛诺斯，三界守护者...',
+      template: '你是克洛诺斯，埃拉西亚守护者...',
       variables: {
         worldName: { type: 'string', required: true },
         currentEra: { type: 'string', required: true }
@@ -833,8 +835,8 @@ const worldPlan = AgentPlanner.define({
 // 2. 执行Plan
 const result = await AgentPlanner.execute('world:daily-evolution', {
   variables: {
-    worldName: '三界风云录',
-    currentEra: 'era_immortal_descent',
+    worldName: 'Agame',
+    currentEra: 'era_power_struggle',
     day: 156
   },
   context: {
