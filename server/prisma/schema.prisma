@@ -1,0 +1,248 @@
+// Prisma Schema for Agame
+// SQLite version for development
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 世界状态表 - 存储游戏世界的完整状态快照
+// ============================================
+model WorldState {
+  id                  Int         @id @default(autoincrement())
+  day                 Int         @unique // 游戏日(从1开始)
+  year                Int         // 游戏年
+  month               Int         // 游戏月(1-12)
+  season              String      // 季节
+  phase               String      // 时段
+  historyStage        String      // 历史阶段
+  snapshotId          String      @unique // 快照ID
+  previousSnapshotId  String?     // 前一快照ID
+
+  // JSON字符串存储复杂结构
+  balance             String      // WorldBalance JSON
+  factions            String      // Record<Faction, FactionState> JSON
+  cities              String      // Record<string, CityState> JSON
+  activeEvents        String      @default("[]") // WorldEvent[] JSON
+  globalVariables     String      @default("{}") // 全局变量 JSON
+
+  createdAt           DateTime    @default(now())
+
+  @@index([day])
+  @@index([historyStage])
+  @@map("world_state")
+}
+
+// ============================================
+// 玩家表 - 存储玩家完整状态
+// ============================================
+model Player {
+  id                  String      @id // 玩家唯一ID
+  userId              String      @unique // 外部用户ID
+  name                String
+  age                 Int         @default(18)
+
+  // 阵营信息
+  faction             String?
+  factionLevel        String      @default("neutral")
+  titles              String      @default("") // JSON数组字符串
+
+  // 等级与经验
+  level               Int         @default(1)
+  experience          Int         @default(0)
+
+  // JSON字符串存储复杂结构
+  attributes          String      // PlayerAttributes JSON
+  reputation          String      // FactionReputation JSON
+  skills              String      // SkillSet JSON
+  relationships       String      @default("{}") // NPCRelationships JSON
+  tags                String      @default("") // PlayerTag[] JSON数组字符串
+  resources           String      @default("{}") // PlayerResources JSON
+  location            String      // PlayerLocation JSON
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // 关联
+  events              Event[]
+  decisions           Decision[]
+
+  @@index([userId])
+  @@index([faction])
+  @@index([level])
+  @@map("players")
+}
+
+// ============================================
+// NPC表 - 存储NPC完整状态
+// ============================================
+model NPC {
+  id                  String      @id
+  name                String
+  age                 Int
+  gender              String
+  type                String      // NPCType
+  role                String      @default("common") // NPCRole
+
+  // 阵营归属
+  faction             String?
+  factionPosition     String?
+
+  // JSON字符串存储复杂结构
+  attributes          String      // PlayerAttributes JSON
+  skills              String      // SkillSet JSON
+  personality         String      // NPCPersonality JSON
+  relationships       String      @default("{}") // NPCRelationships JSON
+  currentStatus       String      // NPCCurrentStatus JSON
+  behaviorPattern     String?     // NPCBehaviorPattern JSON
+  agentConfig         String?     // NPCAgentConfig JSON
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([faction])
+  @@index([type])
+  @@index([role])
+  @@map("npcs")
+}
+
+// ============================================
+// 事件表 - 存储游戏事件
+// ============================================
+model Event {
+  id                  String      @id
+  playerId            String?
+  type                String      // EventType
+  category            String      // EventCategory
+  title               String
+  description         String
+  narrativeText       String?
+
+  // JSON字符串
+  choices             String      // EventChoice[] JSON
+  triggerConditions   String?     // EventTriggerCondition[] JSON
+  affectedEntities    String      @default("[]") // AffectedEntity[] JSON
+
+  scope               String      // EventScope
+  status              String      @default("pending") // EventStatus
+
+  expiresAt           DateTime?
+  createdAt           DateTime    @default(now())
+
+  // 关联
+  player              Player?     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  decisions           Decision[]
+
+  @@index([playerId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("events")
+}
+
+// ============================================
+// 决策表 - 存储玩家决策历史
+// ============================================
+model Decision {
+  id                  Int         @id @default(autoincrement())
+  playerId            String
+  eventId             String
+
+  choiceIndex         Int
+  choiceLabel         String
+
+  // JSON字符串
+  consequences        String      // EventConsequence JSON
+  context             String      // 决策上下文 JSON
+
+  irreversible        Boolean     @default(false)
+  madeAt              DateTime    @default(now())
+  gameDay             Int         // 决策时的游戏日
+
+  // 关联
+  player              Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  event               Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([eventId])
+  @@index([madeAt])
+  @@map("decisions")
+}
+
+// ============================================
+// 晨报表 - 缓存每日晨报
+// ============================================
+model DailyNews {
+  id                  Int         @id @default(autoincrement())
+  day                 Int         @unique
+  date                String      // ISO日期字符串
+
+  // JSON字符串
+  news                String      // Record<Faction, FactionNews> JSON
+  worldHeadline       String?     // NewsItem JSON
+  playerNews          String      @default("[]") // NewsItem[] JSON
+
+  generatedAt         DateTime    @default(now())
+  generatedBy         String?     // Agent ID
+
+  @@index([day])
+  @@map("daily_news")
+}
+
+// ============================================
+// 玩家-事件关联表 - 用于快速查询玩家待处理事件
+// ============================================
+model PlayerEventQueue {
+  id                  Int         @id @default(autoincrement())
+  playerId            String
+  eventId             String
+  priority            Int         @default(0) // 优先级
+  isRead              Boolean     @default(false)
+  createdAt           DateTime    @default(now())
+
+  @@unique([playerId, eventId])
+  @@index([playerId])
+  @@index([playerId, priority])
+  @@map("player_event_queue")
+}
+
+// ============================================
+// 游戏配置表 - 存储全局游戏配置
+// ============================================
+model GameConfig {
+  id                  Int         @id @default(autoincrement())
+  key                 String      @unique
+  value               String      // JSON
+  description         String?
+  updatedAt           DateTime    @updatedAt
+
+  @@map("game_config")
+}
+
+// ============================================
+// Agent任务表 - 存储Agent执行的任务记录
+// ============================================
+model AgentTask {
+  id                  Int         @id @default(autoincrement())
+  agentId             String
+  taskType            String
+  targetId            String?     // 目标实体ID
+
+  input               String      // JSON
+  output              String?     // JSON
+  status              String      @default("pending")
+
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime    @default(now())
+
+  @@index([agentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("agent_tasks")
+}
