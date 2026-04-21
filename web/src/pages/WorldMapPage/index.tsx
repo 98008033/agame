@@ -194,7 +194,7 @@ function WorldMap({
               {isPlayerCity && (
                 <>
                   <circle cx={city.x} cy={city.y} r={radius + 3} fill="none" stroke="var(--accent-gold)" strokeWidth="0.4">
-                    <animate attributeName="r" values={`${radius + 1}`; `${radius + 4}; ${radius + 1}`} dur="1.5s" repeatCount="indefinite" />
+                    <animate attributeName="r" values={`${radius + 1};${radius + 4};${radius + 1}`} dur="1.5s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1.5s" repeatCount="indefinite" />
                   </circle>
                   <circle cx={city.x} cy={city.y} r={radius + 1.5} fill="none" stroke="var(--accent-gold)" strokeWidth="0.3">
