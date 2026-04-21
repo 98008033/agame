@@ -9,6 +9,9 @@ import { llmService } from '../services/llm/index.js';
 import { promptBuilder } from './PromptBuilder.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import { settleAllPlayers } from '../services/economyService.js';
+import { decayAllRelationships, processRelationshipEvents } from '../services/relationshipService.js';
+import { tickPowerCycle } from '../services/powerCycleService.js';
+import { detectConflicts } from '../services/conflictService.js';
 
 export interface DailyNewsOutput {
   news: {
@@ -101,6 +104,25 @@ export class ChronosAgent {
           console.log(`[Chronos] ${r.playerId}: gold ${r.goldBefore}->${r.goldAfter}, influence ${r.influenceBefore}->${r.influenceAfter}, tier ${r.socialTierBefore}->${r.socialTierAfter}`);
         }
       }
+
+      // 每日社会循环更新
+      console.log('[Chronos] 开始社会循环更新...');
+
+      // 1. 关系衰减
+      const relUpdate = await decayAllRelationships();
+      console.log(`[Chronos] 关系衰减: ${relUpdate.totalRelationshipsUpdated} 条关系更新`);
+
+      // 2. 关系事件处理
+      const relEvents = await processRelationshipEvents();
+      console.log(`[Chronos] 关系事件: ${relEvents.processed} 个事件处理`);
+
+      // 3. 权力周期
+      const powerResult = await tickPowerCycle();
+      console.log(`[Chronos] 权力周期: 第${powerResult.day}天, ${powerResult.strugglesDetected} 新斗争, ${powerResult.strugglesResolved} 已解决`);
+
+      // 4. 冲突检测
+      const conflictResult = await detectConflicts();
+      console.log(`[Chronos] 冲突检测: ${conflictResult.newConflicts.length} 新冲突, ${conflictResult.totalActive} 活跃`);
 
       // 更新世界状态（推进一天）
       await prisma.worldState.create({
