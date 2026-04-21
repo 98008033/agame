@@ -18,6 +18,7 @@ import JournalPage from './pages/JournalPage'
 import AdminPage from './pages/AdminPage'
 import DeathNarrativePage from './pages/DeathNarrativePage'
 import EventHistoryPage from './pages/EventHistoryPage'
+import FactionPage from './pages/FactionPage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -98,6 +99,12 @@ export default function App() {
         <Route path="/death" element={<DeathNarrativePage />} />
         <Route path="/event-history" element={
           <ProtectedRoute><EventHistoryPage /></ProtectedRoute>
+        } />
+        <Route path="/factions" element={
+          <ProtectedRoute><FactionPage /></ProtectedRoute>
+        } />
+        <Route path="/factions/:id" element={
+          <ProtectedRoute><FactionPage /></ProtectedRoute>
         } />
 
         {/* 默认路由 */}

@@ -218,6 +218,18 @@ export default function StatusPage() {
                   </span>
                 </div>
               </div>
+              {/* 派系入口按钮 */}
+              <button
+                onClick={() => navigate('/factions')}
+                className="w-full mt-3 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-[1.02]"
+                style={{
+                  backgroundColor: factionData.color + '20',
+                  color: factionData.color,
+                  border: `1px solid ${factionData.color}40`
+                }}
+              >
+                🏰 查看派系详情
+              </button>
             </div>
           )}
         </div>
