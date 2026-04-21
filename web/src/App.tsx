@@ -23,6 +23,7 @@ import APSystemPage from './pages/APSystemPage'
 import DialogPage from './pages/DialogPage'
 import LegacyPage from './pages/LegacyPage'
 import WorldMapPage from './pages/WorldMapPage'
+import SkillTreePage from './pages/SkillTreePage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -122,6 +123,9 @@ export default function App() {
         <Route path="/legacy" element={<LegacyPage />} />
         <Route path="/map" element={
           <ProtectedRoute><WorldMapPage /></ProtectedRoute>
+        } />
+        <Route path="/skills" element={
+          <ProtectedRoute><SkillTreePage /></ProtectedRoute>
         } />
 
         {/* 默认路由 */}

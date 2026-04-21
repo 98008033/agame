@@ -55,6 +55,11 @@ export const playerApi = {
   claimLegacy: (legacyId: string) => apiClient.post(`/player/legacy/${legacyId}/claim`),
   createLegacyRecord: (data?: { name?: string; level?: number; inheritanceType?: string }) =>
     apiClient.post('/player/legacy/create', data),
+  // 技能树相关
+  getSkillTree: () => apiClient.get('/player/skills/tree'),
+  getSkillDetail: (skillId: string) => apiClient.get(`/player/skills/${skillId}`),
+  unlockSkill: (skillId: string) => apiClient.post(`/player/skills/${skillId}/unlock`),
+  getAvailableSkills: () => apiClient.get('/player/skills/available'),
 }
 
 // 事件系统API

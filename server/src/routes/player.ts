@@ -13,6 +13,10 @@ import {
   getSkill,
   setSkill,
   getExpForNextLevel,
+  getSkillTree,
+  unlockSkill,
+  getSkillDetail,
+  getAvailableSkills,
 } from '../services/skillService.js';
 import { snapshotBeforeDecision, recordDecisionImpact, getDecisionImpact, getPlayerImpactTimeline } from '../services/impactTracker.js';
 import { createLegacyRecord, getUnclaimedLegacies, claimLegacy, calculateLegacyValue } from '../services/legacyService.js';
@@ -579,6 +583,94 @@ router.get('/skills/history', async (req: Request, res: Response): Promise<void>
   } catch (err) {
     console.error('[Skill History Error]', err);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取技能历史失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/player/skills/tree - 获取技能树
+router.get('/skills/tree', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const tree = await getSkillTree(playerId);
+    res.json(createSuccessResponse(tree, requestId));
+  } catch (err) {
+    console.error('[Skill Tree Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取技能树失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/player/skills/:skillId - 获取技能详情
+router.get('/skills/:skillId', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const skillId = req.params['skillId'];
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  if (!skillId) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '缺少技能ID', requestId));
+    return;
+  }
+
+  try {
+    const detail = await getSkillDetail(skillId, playerId);
+    res.json(createSuccessResponse(detail, requestId));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '未知错误';
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', message, requestId, { skillId }));
+  }
+});
+
+// POST /v1/player/skills/:skillId/unlock - 解锁技能
+router.post('/skills/:skillId/unlock', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const skillId = req.params['skillId'];
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  if (!skillId) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '缺少技能ID', requestId));
+    return;
+  }
+
+  try {
+    const result = await unlockSkill(playerId, skillId);
+    res.json(createSuccessResponse(result, requestId));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '未知错误';
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', message, requestId, { skillId }));
+  }
+});
+
+// GET /v1/player/skills/available - 获取可解锁的技能列表
+router.get('/skills/available', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const available = await getAvailableSkills(playerId);
+    res.json(createSuccessResponse(available, requestId));
+  } catch (err) {
+    console.error('[Available Skills Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取可解锁技能失败', requestId, undefined, true));
   }
 });
 
