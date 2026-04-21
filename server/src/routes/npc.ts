@@ -15,6 +15,14 @@ import {
   LifeStageNames,
   DeathTypeNames,
 } from '../types/npcLifecycle.js';
+import {
+  getDialogContext,
+  generateDialogResponse,
+  saveDialogInteraction,
+  storeNPCMemory,
+  getNPCMemories,
+  getDialogHistory,
+} from '../services/npcDialogService.js';
 
 const router = Router();
 
@@ -134,7 +142,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 // GET /v1/npcs/:npcId - 获取NPC信息
 router.get('/:npcId', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   try {
     const npc = await prisma.nPC.findUnique({
@@ -214,7 +222,7 @@ router.get('/:npcId', async (req: Request, res: Response): Promise<void> => {
 // GET /v1/npcs/:npcId/relationships - 获取NPC关系网络
 router.get('/:npcId/relationships', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   try {
     const npc = await prisma.nPC.findUnique({
@@ -258,77 +266,120 @@ router.get('/:npcId/relationships', async (req: Request, res: Response): Promise
   }
 });
 
-// POST /v1/npcs/:npcId/interact - 与NPC对话
+// POST /v1/npcs/:npcId/interact - 与NPC对话（LLM驱动）
 router.post('/:npcId/interact', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   if (!playerId) {
-    res.status(401).json(createErrorResponse(
-      'UNAUTHORIZED',
-      '未授权访问',
-      requestId
-    ));
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
     return;
   }
 
-  const { type, message } = req.body;
+  const { message } = req.body;
+  if (!message || typeof message !== 'string') {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '缺少message参数', requestId));
+    return;
+  }
 
   try {
-    const npc = await prisma.nPC.findUnique({
-      where: { id: npcId },
-    });
-
+    const npc = await prisma.nPC.findUnique({ where: { id: npcId } });
     if (!npc) {
-      res.status(404).json(createErrorResponse(
-        'NOT_FOUND',
-        'NPC不存在',
-        requestId,
-        { npcId }
-      ));
+      res.status(404).json(createErrorResponse('NOT_FOUND', 'NPC不存在', requestId, { npcId }));
       return;
     }
 
-    // MVP阶段：简化NPC响应
-    const npcDialogue = type === 'talk' && message
-      ? `${npc.name}看着你，说道："你说得很有道理。"`
-      : `${npc.name}点了点头。`;
+    // Get dialog context
+    const context = await getDialogContext(playerId, npcId);
+
+    // Generate dialog response (LLM-driven)
+    const dialogResponse = await generateDialogResponse(context, message);
+
+    // Save interaction and update relationship
+    await saveDialogInteraction(playerId, npcId, message, dialogResponse);
+
+    // Store memory if important
+    const importance = Math.abs(dialogResponse.relationshipDelta) > 3 ? 5 : 2;
+    await storeNPCMemory(npcId, {
+      event: `玩家: ${message.substring(0, 100)}...`,
+      importance,
+      sentiment: dialogResponse.relationshipDelta,
+    });
 
     res.json(createSuccessResponse({
       success: true,
-      interaction: {
-        type,
-        npcId,
-        timestamp: new Date().toISOString(),
-      },
       npcResponse: {
-        dialogue: npcDialogue,
-        tone: 'neutral',
+        dialogue: dialogResponse.dialogue,
+        tone: dialogResponse.tone,
+        mood: dialogResponse.mood,
       },
       relationshipChange: {
-        before: 0,
-        after: 0,
-        change: 0,
-        reason: '互动',
+        delta: dialogResponse.relationshipDelta,
+        value: context.relationshipValue + dialogResponse.relationshipDelta,
+        level: getRelationshipLevel(context.relationshipValue + dialogResponse.relationshipDelta),
       },
     }, requestId));
   } catch (err) {
     console.error('[NPC Interact Error]', err);
-    res.status(500).json(createErrorResponse(
-      'INTERNAL_ERROR',
-      'NPC互动失败',
-      requestId,
-      undefined,
-      true
-    ));
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'NPC互动失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/npcs/:npcId/dialog-history - 获取对话历史
+router.get('/:npcId/dialog-history', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const npcId = req.params['npcId']!;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 20, 50);
+  const offset = parseInt(req.query['offset'] as string) || 0;
+
+  try {
+    const { messages, total } = await getDialogHistory(playerId, npcId, limit, offset);
+    res.json(createSuccessResponse({
+      npcId,
+      messages,
+      total,
+      pagination: { limit, offset, hasMore: offset + limit < total },
+    }, requestId));
+  } catch (err) {
+    console.error('[NPC Dialog History Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取对话历史失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/npcs/:npcId/memories - 获取NPC记忆
+router.get('/:npcId/memories', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const npcId = req.params['npcId']!;
+
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 10, 20);
+
+  try {
+    const npc = await prisma.nPC.findUnique({ where: { id: npcId } });
+    if (!npc) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', 'NPC不存在', requestId, { npcId }));
+      return;
+    }
+
+    const memories = await getNPCMemories(npcId, limit);
+    res.json(createSuccessResponse({ npcId, memories }, requestId));
+  } catch (err) {
+    console.error('[NPC Memories Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取NPC记忆失败', requestId, undefined, true));
   }
 });
 
 // GET /v1/npcs/:npcId/lifecycle - Get NPC lifecycle details
 router.get('/:npcId/lifecycle', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   try {
     const npc = await prisma.nPC.findUnique({ where: { id: npcId } });
@@ -387,7 +438,7 @@ router.get('/:npcId/lifecycle', async (req: Request, res: Response): Promise<voi
 router.post('/:npcId/kill', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   if (!playerId) {
     res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
@@ -458,7 +509,7 @@ router.post('/:npcId/kill', async (req: Request, res: Response): Promise<void> =
 router.post('/:npcId/designate-heir', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const npcId = req.params['npcId'];
+  const npcId = req.params['npcId']!;
 
   if (!playerId) {
     res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));

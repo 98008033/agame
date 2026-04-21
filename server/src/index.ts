@@ -25,6 +25,7 @@ import actionRoutes from './routes/actions.js';
 import eventRoutes from './routes/events.js';
 import adminRoutes from './routes/admin.js';
 import narrativeRoutes from './routes/narrative.js';
+import npcDialogRoutes from './routes/npcDialog.js';
 
 // Load environment variables
 config();
@@ -100,6 +101,7 @@ app.use('/v1/factions', authMiddleware, apiRateLimiter, factionRoutes);
 app.use('/v1/actions', authMiddleware, apiRateLimiter, actionRoutes);
 app.use('/v1/events', authMiddleware, apiRateLimiter, eventRoutes);
 app.use('/v1/narrative', authMiddleware, apiRateLimiter, narrativeRoutes);
+app.use('/v1/npc-dialog', authMiddleware, apiRateLimiter, npcDialogRoutes);
 
 // ============================================
 // Error Handling

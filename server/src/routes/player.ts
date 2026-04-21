@@ -15,7 +15,8 @@ import {
   getExpForNextLevel,
 } from '../services/skillService.js';
 import { snapshotBeforeDecision, recordDecisionImpact, getDecisionImpact, getPlayerImpactTimeline } from '../services/impactTracker.js';
-import { DEFAULT_SKILL_SET, type SkillSet } from '../types/game.js';
+import { createLegacyRecord, getUnclaimedLegacies, claimLegacy, calculateLegacyValue } from '../services/legacyService.js';
+import { DEFAULT_SKILL_SET, type SkillSet, DEFAULT_PLAYER_ATTRIBUTES, type PlayerAttributes } from '../types/game.js';
 
 const router = Router();
 
@@ -635,5 +636,97 @@ router.get('/impact-timeline', async (req: Request, res: Response): Promise<void
   } catch (err) {
     console.error('[Impact Timeline Error]', err);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取影响时间线失败', requestId, undefined, true));
+  }
+});
+
+// ============================================
+// Legacy / Inheritance Endpoints
+// ============================================
+
+// GET /v1/player/legacy/unclaimed - 获取未领取的遗产
+router.get('/legacy/unclaimed', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const legacies = await getUnclaimedLegacies(playerId);
+    res.json(createSuccessResponse({ legacies }, requestId));
+  } catch (err) {
+    console.error('[Unclaimed Legacy Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取未领取遗产失败', requestId, undefined, true));
+  }
+});
+
+// POST /v1/player/legacy/:id/claim - 领取遗产
+router.post('/legacy/:id/claim', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const legacyId = req.params['id'] ?? '';
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const result = await claimLegacy(legacyId, playerId);
+    if (!result.success) {
+      res.status(400).json(createErrorResponse('INVALID_REQUEST', result.message, requestId));
+      return;
+    }
+    res.json(createSuccessResponse(result, requestId));
+  } catch (err) {
+    console.error('[Claim Legacy Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '领取遗产失败', requestId, undefined, true));
+  }
+});
+
+// POST /v1/player/legacy/create - 创建遗产记录 (玩家死亡时调用)
+router.post('/legacy/create', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  const { name, level, inheritanceType } = req.body;
+
+  try {
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', '玩家不存在', requestId));
+      return;
+    }
+
+    const resources = safeJsonParse<Record<string, number>>(player.resources, {});
+    const skills = safeJsonParse<SkillSet>(player.skills, DEFAULT_SKILL_SET);
+    const relationships = safeJsonParse<Record<string, number>>(player.relationships, {});
+    const tags = safeJsonParse<string[]>(player.tags, []);
+    const attributes = safeJsonParse<PlayerAttributes>(player.attributes, DEFAULT_PLAYER_ATTRIBUTES);
+
+    const legacy = await createLegacyRecord(
+      playerId,
+      name ?? player.name,
+      level ?? player.level,
+      resources,
+      skills,
+      relationships,
+      tags,
+      attributes,
+      inheritanceType ?? 'blood'
+    );
+
+    const totalValue = calculateLegacyValue(legacy.legacyPackage);
+    res.json(createSuccessResponse({ legacy, totalValue }, requestId));
+  } catch (err) {
+    console.error('[Create Legacy Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '创建遗产记录失败', requestId, undefined, true));
   }
 });

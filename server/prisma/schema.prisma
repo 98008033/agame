@@ -261,6 +261,24 @@ model AgentTask {
 }
 
 // ============================================
+// 对话消息表 - 存储玩家与NPC的对话历史
+// ============================================
+model DialogMessage {
+  id        Int      @id @default(autoincrement())
+  playerId  String
+  npcId     String
+  role      String   // "player" or "npc"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([playerId])
+  @@index([npcId])
+  @@index([playerId, npcId])
+  @@index([createdAt])
+  @@map("dialog_messages")
+}
+
+// ============================================
 // 行动记录表 - 存储玩家行动历史
 // ============================================
 model GameAction {
