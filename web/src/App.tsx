@@ -17,6 +17,7 @@ import TodayPlanPage from './pages/TodayPlanPage'
 import JournalPage from './pages/JournalPage'
 import AdminPage from './pages/AdminPage'
 import DeathNarrativePage from './pages/DeathNarrativePage'
+import EventHistoryPage from './pages/EventHistoryPage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -95,6 +96,9 @@ export default function App() {
           <ProtectedRoute><AdminPage /></ProtectedRoute>
         } />
         <Route path="/death" element={<DeathNarrativePage />} />
+        <Route path="/event-history" element={
+          <ProtectedRoute><EventHistoryPage /></ProtectedRoute>
+        } />
 
         {/* 默认路由 */}
         <Route path="/" element={<Navigate to="/login" replace />} />
