@@ -165,6 +165,16 @@ export const adminApi = {
   getSystemStatus: () => apiClient.get('/admin/system/status'),
 }
 
+// NPC Dialog API - 对话系统
+export const npcDialogApi = {
+  getAvailable: () => apiClient.get('/npc-dialog/available'),
+  getNPCInfo: (npcId: string) => apiClient.get(`/npc-dialog/${npcId}`),
+  startDialog: (npcId: string) => apiClient.post(`/npc-dialog/${npcId}/start`),
+  sendMessage: (npcId: string, message: string) => apiClient.post(`/npc-dialog/${npcId}/message`, { message }),
+  getHistory: (npcId: string, limit?: number) => apiClient.get(`/npc-dialog/${npcId}/history`, { params: { limit } }),
+  endDialog: (npcId: string) => apiClient.post(`/npc-dialog/${npcId}/end`),
+}
+
 export default {
   world: worldApi,
   chapter: chapterApi,
@@ -175,4 +185,5 @@ export default {
   system: systemApi,
   narrative: narrativeApi,
   action: actionApi,
+  npcDialog: npcDialogApi,
 }

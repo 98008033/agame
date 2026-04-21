@@ -23,6 +23,10 @@ export { default as SocialClassProgressBar } from './SocialClassProgressBar'
 // NPC关系卡片
 export { default as NPCRelationshipCard } from './NPCRelationshipCard'
 
+// NPC对话组件
+export { default as NPCDialog } from './NPCDialog'
+export type { DialogMessage, NPCInfo } from './NPCDialog'
+
 // 玩家成长组件
 export { default as PlayerGrowth } from './PlayerGrowth'
 

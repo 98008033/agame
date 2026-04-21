@@ -85,6 +85,7 @@ export default function DashboardPage() {
   // 快捷入口 - 仅在有角色时显示
   const quickEntries = hasCharacter ? [
     { id: 'actions', title: '今日行动', icon: '🎯', path: '/actions', accent: 'var(--accent-purple)' },
+    { id: 'dialog', title: 'NPC对话', icon: '💬', path: '/dialog', accent: 'var(--accent-blue)' },
     { id: 'event-history', title: '事件历史', icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
     { id: 'factions', title: '派系总览', icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
   ] : []

@@ -20,6 +20,7 @@ import DeathNarrativePage from './pages/DeathNarrativePage'
 import EventHistoryPage from './pages/EventHistoryPage'
 import FactionPage from './pages/FactionPage'
 import APSystemPage from './pages/APSystemPage'
+import DialogPage from './pages/DialogPage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -109,6 +110,12 @@ export default function App() {
         } />
         <Route path="/actions" element={
           <ProtectedRoute><APSystemPage /></ProtectedRoute>
+        } />
+        <Route path="/dialog" element={
+          <ProtectedRoute><DialogPage /></ProtectedRoute>
+        } />
+        <Route path="/dialog/:npcId" element={
+          <ProtectedRoute><DialogPage /></ProtectedRoute>
         } />
 
         {/* 默认路由 */}
