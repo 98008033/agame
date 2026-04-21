@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useGameStore } from '../../stores/gameStore'
+import { actionApi, playerApi } from '../../services'
 import { UserAvatarMenu } from '../../components'
 
 export default function DashboardPage() {
@@ -8,6 +11,32 @@ export default function DashboardPage() {
   const player = usePlayerStore((s) => s.player)
   const currentDay = useGameStore((s) => s.currentDay)
   const historyStage = useGameStore((s) => s.historyStage)
+
+  const hasCharacter = !!player.id
+
+  // AP状态
+  const { data: apStatus } = useQuery({
+    queryKey: ['ap-status-dashboard'],
+    queryFn: async () => {
+      if (!hasCharacter) return null
+      const response = await actionApi.getStatus()
+      if (response.data.success) return response.data.data
+      return null
+    },
+    enabled: hasCharacter,
+  })
+
+  // 最近决策历史
+  const { data: recentHistory } = useQuery({
+    queryKey: ['player-history-dashboard'],
+    queryFn: async () => {
+      if (!hasCharacter) return []
+      const response = await playerApi.getHistory(undefined, 3)
+      if (response.data.success) return response.data.data.history || []
+      return []
+    },
+    enabled: hasCharacter,
+  })
 
   const modules = [
     {
@@ -53,6 +82,13 @@ export default function DashboardPage() {
     },
   ]
 
+  // 快捷入口 - 仅在有角色时显示
+  const quickEntries = hasCharacter ? [
+    { id: 'actions', title: '今日行动', icon: '🎯', path: '/actions', accent: 'var(--accent-purple)' },
+    { id: 'event-history', title: '事件历史', icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
+    { id: 'factions', title: '派系总览', icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
+  ] : []
+
   const stageNames: Record<string, string> = {
     era_power_struggle: '权力博弈期',
     era_war_prep: '战争酝酿期',
@@ -78,6 +114,42 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="container-wide py-6">
+        {/* AP状态 - 仅在有角色时显示 */}
+        {hasCharacter && apStatus && (
+          <section className="mb-6">
+            <div className="card-modern">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🎯</span>
+                  <div>
+                    <h3 className="font-bold text-[var(--accent-purple)] font-display">行动点数 AP</h3>
+                    <span className="text-sm text-[var(--text-secondary)]">
+                      当前: {apStatus.current}/{apStatus.max} · 已消耗: {apStatus.consumed}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/actions')}
+                  className="btn-modern text-sm"
+                  style={{ borderColor: 'var(--accent-purple)' }}
+                >
+                  今日行动
+                </button>
+              </div>
+              {/* AP进度条 */}
+              <div className="progress-modern mt-3">
+                <div
+                  className="progress-fill transition-all duration-500"
+                  style={{
+                    width: `${(apStatus.current / Math.max(apStatus.max, 1)) * 100}%`,
+                    backgroundColor: apStatus.current > apStatus.max * 0.5 ? 'var(--accent-purple)' : apStatus.current > apStatus.max * 0.25 ? 'var(--accent-gold)' : 'var(--accent-red)'
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Welcome Section */}
         <section className="mb-8">
           <div className="card-modern-alt border-[var(--accent-gold)]/30">
@@ -131,6 +203,46 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
+
+        {/* 快捷入口 - 仅在有角色时显示 */}
+        {hasCharacter && quickEntries.length > 0 && (
+          <section className="mt-8">
+            <h3 className="text-[var(--text-secondary)] font-medium mb-4">快捷入口</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {quickEntries.map((entry) => (
+                <button
+                  key={entry.id}
+                  onClick={() => navigate(entry.path)}
+                  className="card-modern text-center hover:scale-[1.02] transition-all"
+                  style={{ borderColor: entry.accent + '60' }}
+                >
+                  <span className="text-2xl block mb-1">{entry.icon}</span>
+                  <span className="font-medium text-[var(--text-primary)] font-display">{entry.title}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 最近决策历史 - 仅在有角色时显示 */}
+        {hasCharacter && recentHistory && recentHistory.length > 0 && (
+          <section className="mt-8">
+            <h3 className="text-[var(--text-secondary)] font-medium mb-4">最近决策</h3>
+            <div className="space-y-2">
+              {recentHistory.map((item: Record<string, unknown>, index: number) => (
+                <div key={index} className="card-modern-alt flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-sm text-[var(--text-primary)]">{String(item.eventTitle || item.eventId || '事件')}</span>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">{String(item.result || item.description || '已处理')}</p>
+                  </div>
+                  {item.timestamp && (
+                    <span className="text-xs text-[var(--text-muted)]">{String(item.timestamp).slice(0, 16)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Quick Stats */}
         <section className="mt-8">
