@@ -21,6 +21,7 @@ import EventHistoryPage from './pages/EventHistoryPage'
 import FactionPage from './pages/FactionPage'
 import APSystemPage from './pages/APSystemPage'
 import DialogPage from './pages/DialogPage'
+import LegacyPage from './pages/LegacyPage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -117,6 +118,7 @@ export default function App() {
         <Route path="/dialog/:npcId" element={
           <ProtectedRoute><DialogPage /></ProtectedRoute>
         } />
+        <Route path="/legacy" element={<LegacyPage />} />
 
         {/* 默认路由 */}
         <Route path="/" element={<Navigate to="/login" replace />} />

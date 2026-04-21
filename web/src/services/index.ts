@@ -47,6 +47,11 @@ export const playerApi = {
   // 获取决策历史
   getHistory: (limit?: number, offset?: number) =>
     apiClient.get('/player/history', { params: { limit, offset } }),
+  // 遗产/继承相关
+  getUnclaimedLegacies: () => apiClient.get('/player/legacy/unclaimed'),
+  claimLegacy: (legacyId: string) => apiClient.post(`/player/legacy/${legacyId}/claim`),
+  createLegacyRecord: (data?: { name?: string; level?: number; inheritanceType?: string }) =>
+    apiClient.post('/player/legacy/create', data),
 }
 
 // 事件系统API
