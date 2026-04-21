@@ -22,6 +22,7 @@ import FactionPage from './pages/FactionPage'
 import APSystemPage from './pages/APSystemPage'
 import DialogPage from './pages/DialogPage'
 import LegacyPage from './pages/LegacyPage'
+import WorldMapPage from './pages/WorldMapPage'
 
 // WebSocket连接组件
 function WebSocketProvider() {
@@ -119,6 +120,9 @@ export default function App() {
           <ProtectedRoute><DialogPage /></ProtectedRoute>
         } />
         <Route path="/legacy" element={<LegacyPage />} />
+        <Route path="/map" element={
+          <ProtectedRoute><WorldMapPage /></ProtectedRoute>
+        } />
 
         {/* 默认路由 */}
         <Route path="/" element={<Navigate to="/login" replace />} />

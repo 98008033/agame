@@ -88,6 +88,7 @@ export default function DashboardPage() {
     { id: 'dialog', title: 'NPC对话', icon: '💬', path: '/dialog', accent: 'var(--accent-blue)' },
     { id: 'event-history', title: '事件历史', icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
     { id: 'factions', title: '派系总览', icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
+    { id: 'map', title: '世界地图', icon: '🗺️', path: '/map', accent: 'var(--accent-green)' },
   ] : []
 
   const stageNames: Record<string, string> = {

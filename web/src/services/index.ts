@@ -8,6 +8,9 @@ export const worldApi = {
   getNews: () => apiClient.get('/world/news'),
   // 获取阵营详情
   getFaction: (factionId: string) => apiClient.get(`/world/factions/${factionId}`),
+  // 世界地图
+  getWorldMap: () => apiClient.get('/world/map'),
+  getCityDetail: (cityId: string) => apiClient.get(`/world/cities/${cityId}`),
 }
 
 // 章节/小说相关API (映射到world/news)
