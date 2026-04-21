@@ -14,6 +14,15 @@ export { default as EventCard } from './EventCard'
 // 用户头像菜单组件
 export { default as UserAvatarMenu } from './UserAvatarMenu'
 
+// 动画数字组件
+export { default as AnimatedNumber } from './AnimatedNumber'
+
+// 社会阶层进度条
+export { default as SocialClassProgressBar } from './SocialClassProgressBar'
+
+// NPC关系卡片
+export { default as NPCRelationshipCard } from './NPCRelationshipCard'
+
 // WebSocket通知组件
 export { default as NotificationToast } from './NotificationToast'
 

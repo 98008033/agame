@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayerStore, socialClassConfig } from '../../stores/playerStore'
 import PlayerGrowth from '../../components/PlayerGrowth'
+import AnimatedNumber from '../../components/AnimatedNumber'
+import SocialClassProgressBar from '../../components/SocialClassProgressBar'
+import NPCRelationshipCard from '../../components/NPCRelationshipCard'
 import { UserAvatarMenu } from '../../components'
 
 // 阵营信息
@@ -50,7 +53,45 @@ const factionLevelNames: Record<string, string> = {
 export default function StatusPage() {
   const navigate = useNavigate()
   const { player } = usePlayerStore()
-  const [activeTab, setActiveTab] = useState<'status' | 'growth'>('status')
+  const [activeTab, setActiveTab] = useState<'status' | 'growth' | 'relationships'>('status')
+
+  // 追踪变化
+  const [prevResources, setPrevResources] = useState({ gold: 0, influence: 0 })
+  const [prevAttributes, setPrevAttributes] = useState<Record<string, number>>({})
+  const [changedAttributes, setChangedAttributes] = useState<Record<string, 'increase' | 'decrease'>>({})
+  const prevPlayerRef = useRef<string>('')
+
+  // 监听玩家数据变化，记录变化
+  useEffect(() => {
+    if (!player.id) return
+
+    const playerKey = JSON.stringify({
+      gold: player.resources.gold,
+      influence: player.resources.influence,
+      attributes: player.attributes,
+    })
+
+    if (playerKey !== prevPlayerRef.current && prevPlayerRef.current !== '') {
+      // 检测属性变化
+      const changes: Record<string, 'increase' | 'decrease'> = {}
+      for (const [key, value] of Object.entries(player.attributes)) {
+        const prev = prevAttributes[key]
+        if (prev !== undefined && prev !== value) {
+          changes[key] = value > prev ? 'increase' : 'decrease'
+        }
+      }
+      setChangedAttributes(changes)
+
+      // 3秒后清除变化状态
+      setTimeout(() => setChangedAttributes({}), 3000)
+    }
+
+    if (playerKey !== prevPlayerRef.current) {
+      setPrevResources({ gold: player.resources.gold, influence: player.resources.influence })
+      setPrevAttributes({ ...player.attributes })
+      prevPlayerRef.current = playerKey
+    }
+  }, [player.resources, player.attributes, player.id])
 
   // 如果没有玩家数据，显示创建角色入口
   if (!player || !player.id) {
@@ -79,6 +120,10 @@ export default function StatusPage() {
   }
 
   const factionData = player.faction ? factionInfo[player.faction] : null
+
+  // 资源软上限
+  const goldSoftCap = 1000
+  const influenceSoftCap = 500
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
@@ -120,6 +165,16 @@ export default function StatusPage() {
             }`}
           >
             角色发展
+          </button>
+          <button
+            onClick={() => setActiveTab('relationships')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'relationships'
+                ? 'bg-[var(--accent-purple)] text-white'
+                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+            }`}
+          >
+            NPC关系
           </button>
           <button
             onClick={() => navigate('/journal')}
@@ -167,44 +222,98 @@ export default function StatusPage() {
           )}
         </div>
 
-        {/* 十维属性 */}
-        <div className="card-modern mb-4">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【十维属性】</h3>
-          <div className="space-y-3">
-            {Object.entries(player.attributes).map(([key, value]) => (
-              <div key={key} className="flex items-center">
-                <span className="w-12 text-sm text-[var(--text-secondary)]">{attributeNames[key]}</span>
-                <div className="flex-1 mx-2 progress-modern">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${Math.min(value, 100)}%`,
-                      background: attributeColors[key] || 'var(--accent-blue)'
-                    }}
-                  />
-                </div>
-                <span className="w-10 text-sm text-[var(--text-primary)] font-medium text-right">{value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 资源 */}
+        {/* 资源 - 带进度条和动画 */}
         <div className="card-modern mb-4">
           <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【资源】</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 card-modern-alt">
-              <span className="text-2xl">💰</span>
-              <span className="font-bold text-[var(--accent-gold)] ml-2 font-display">{player.resources.gold}</span>
-              <p className="text-xs text-[var(--text-muted)] mt-2">金币</p>
+            <div className="relative">
+              <AnimatedNumber
+                value={player.resources.gold}
+                prevValue={prevResources.gold}
+                label="金币"
+                icon="💰"
+                colorClass="text-[var(--accent-gold)]"
+              />
+              {/* 进度条 */}
+              <div className="mt-2 progress-modern">
+                <div
+                  className="progress-fill progress-fill-gold"
+                  style={{ width: `${Math.min((player.resources.gold / goldSoftCap) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-[var(--text-muted)] mt-1 text-center">
+                {player.resources.gold}/{goldSoftCap}
+              </p>
             </div>
-            <div className="text-center p-4 card-modern-alt">
-              <span className="text-2xl">⭐</span>
-              <span className="font-bold text-[var(--accent-purple)] ml-2 font-display">{player.resources.influence}</span>
-              <p className="text-xs text-[var(--text-muted)] mt-2">影响力</p>
+            <div className="relative">
+              <AnimatedNumber
+                value={player.resources.influence}
+                prevValue={prevResources.influence}
+                label="影响力"
+                icon="⭐"
+                colorClass="text-[var(--accent-purple)]"
+              />
+              {/* 进度条 */}
+              <div className="mt-2 progress-modern">
+                <div
+                  className="progress-fill"
+                  style={{
+                    width: `${Math.min((player.resources.influence / influenceSoftCap) * 100, 100)}%`,
+                    backgroundColor: 'var(--accent-purple)'
+                  }}
+                />
+              </div>
+              <p className="text-xs text-[var(--text-muted)] mt-1 text-center">
+                {player.resources.influence}/{influenceSoftCap}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* 十维属性 - 带变化高亮 */}
+        <div className="card-modern mb-4">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【十维属性】</h3>
+          <div className="space-y-3">
+            {Object.entries(player.attributes).map(([key, value]) => {
+              const changeType = changedAttributes[key]
+              const animClass = changeType === 'increase' ? 'animate-attr-flash' :
+                changeType === 'decrease' ? 'animate-attr-flash-decrease' : ''
+
+              return (
+                <div key={key} className={`flex items-center rounded-lg transition-all duration-300 ${animClass}`}>
+                  <span className="w-12 text-sm text-[var(--text-secondary)]">{attributeNames[key]}</span>
+                  <div className="flex-1 mx-2 progress-modern">
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${Math.min(value, 100)}%`,
+                        background: attributeColors[key] || 'var(--accent-blue)'
+                      }}
+                    />
+                  </div>
+                  <span className={`w-10 text-sm font-medium text-right ${changeType ? 'font-bold' : ''}`}
+                    style={changeType ? { color: changeType === 'increase' ? 'var(--accent-green)' : 'var(--accent-red)' } : {}}>
+                    {value}
+                  </span>
+                  {changeType && (
+                    <span className="ml-1 text-xs animate-float-up"
+                      style={{ color: changeType === 'increase' ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                      {changeType === 'increase' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 社会阶层进度 */}
+        <SocialClassProgressBar
+          currentClass={player.socialClass || 'commoner'}
+          level={player.level}
+          influence={player.resources.influence}
+          factionLevel={player.factionLevel}
+        />
 
         {/* 经验值 */}
         <div className="card-modern mb-4">
@@ -243,10 +352,62 @@ export default function StatusPage() {
           </div>
         )}
           </>
+        ) : activeTab === 'relationships' ? (
+          <NPCRelationshipsTab />
         ) : (
           <PlayerGrowth />
         )}
       </main>
+    </div>
+  )
+}
+
+// NPC关系Tab组件
+function NPCRelationshipsTab() {
+  const [npcs, setNpcs] = useState<Array<{ id: string; name: string; faction?: string; role?: string; relationship?: { level: string; value: number } }>>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const loadNpcs = async () => {
+      try {
+        const { npcApi } = await import('../../services')
+        const response = await npcApi.getList()
+        if (response.data.success) {
+          const data = response.data.data
+          // 筛选出有关系的NPC
+          const relatedNpcs = (data.npcs || data).filter(
+            (n: Record<string, unknown>) => n.relationship && (n.relationship as Record<string, unknown>).value > 0
+          )
+          setNpcs(relatedNpcs.length > 0 ? relatedNpcs : [])
+        }
+      } catch (error) {
+        console.error('Failed to load NPCs:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadNpcs()
+  }, [])
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-[var(--text-muted)]">加载中...</div>
+  }
+
+  if (npcs.length === 0) {
+    return (
+      <div className="card-modern-alt text-center py-8">
+        <p className="text-[var(--text-secondary)]">暂无NPC关系数据</p>
+        <p className="text-sm text-[var(--text-muted)] mt-2">与NPC互动后将会显示关系</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">【NPC关系详情】</h3>
+      {npcs.map((npc) => (
+        <NPCRelationshipCard key={npc.id} npc={npc} />
+      ))}
     </div>
   )
 }

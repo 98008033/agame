@@ -8,6 +8,7 @@ import prisma from '../models/prisma.js';
 import { llmService } from '../services/llm/index.js';
 import { promptBuilder } from './PromptBuilder.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
+import { settleAllPlayers } from '../services/economyService.js';
 
 export interface DailyNewsOutput {
   news: {
@@ -91,6 +92,15 @@ export class ChronosAgent {
           generatedBy: 'chronos'
         }
       });
+
+      // 每日经济结算（所有玩家）
+      console.log('[Chronos] 开始每日经济结算...');
+      const settlementResults = await settleAllPlayers();
+      for (const r of settlementResults) {
+        if (r.socialTierAfter !== r.socialTierBefore) {
+          console.log(`[Chronos] ${r.playerId}: gold ${r.goldBefore}->${r.goldAfter}, influence ${r.influenceBefore}->${r.influenceAfter}, tier ${r.socialTierBefore}->${r.socialTierAfter}`);
+        }
+      }
 
       // 更新世界状态（推进一天）
       await prisma.worldState.create({

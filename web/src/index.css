@@ -606,6 +606,61 @@ body {
   animation: slideIn 0.3s ease;
 }
 
+/* 数字浮动动画 */
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float-up {
+  animation: floatUp 1.5s ease forwards;
+}
+
+/* 属性闪烁动画 */
+@keyframes attrFlash {
+  0%, 100% {
+    box-shadow: 0 0 0 transparent;
+  }
+  25% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  }
+  75% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.1);
+  }
+}
+
+@keyframes attrFlashDecrease {
+  0%, 100% {
+    box-shadow: 0 0 0 transparent;
+  }
+  25% {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+  }
+  75% {
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.1);
+  }
+}
+
+.animate-attr-flash {
+  animation: attrFlash 0.8s ease;
+}
+
+.animate-attr-flash-decrease {
+  animation: attrFlashDecrease 0.8s ease;
+}
+
 /* 紧急提示 */
 .urgent-warning {
   border-color: var(--accent-red);
