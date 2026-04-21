@@ -47,6 +47,12 @@ model Player {
   name                String
   age                 Int         @default(18)
 
+  // 认证信息
+  email               String?     @unique // 邮箱（可选）
+  passwordHash        String?     // 密码哈希（可选，游客无密码）
+  isGuest             Boolean     @default(false) // 是否游客账户
+  banned              Boolean     @default(false) // 是否禁止登录
+
   // 阵营信息
   faction             String?
   factionLevel        String      @default("neutral")
@@ -55,6 +61,11 @@ model Player {
   // 等级与经验
   level               Int         @default(1)
   experience          Int         @default(0)
+
+  // 行动点系统
+  actionPoints        Int         @default(6) // 今日可用AP
+  storedAP            Int         @default(0) // 存储的AP (最多3)
+  lastAPResetAt       DateTime    @default(now()) // 上次AP重置时间
 
   // JSON字符串存储复杂结构
   attributes          String      // PlayerAttributes JSON
@@ -71,10 +82,12 @@ model Player {
   // 关联
   events              Event[]
   decisions           Decision[]
+  actions             GameAction[]
 
   @@index([userId])
   @@index([faction])
   @@index([level])
+  @@index([lastAPResetAt])
   @@map("players")
 }
 
@@ -245,4 +258,34 @@ model AgentTask {
   @@index([status])
   @@index([createdAt])
   @@map("agent_tasks")
+}
+
+// ============================================
+// 行动记录表 - 存储玩家行动历史
+// ============================================
+model GameAction {
+  id                  Int         @id @default(autoincrement())
+  playerId            String
+  actionType          String      // ActionType
+  apCost              Int         // 消耗的AP
+
+  // JSON字符串存储行动详情
+  parameters          String      @default("{}") // 行动参数 JSON
+  rewards             String      @default("{}") // 获得的奖励 JSON
+  risksResult         String?     // 风险结果 JSON
+
+  success             Boolean     @default(true)
+  narrativeFeedback   String      // 行动反馈叙述
+
+  gameDay             Int         // 行动时的游戏日
+  executedAt          DateTime    @default(now())
+
+  // 关联
+  player              Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@index([actionType])
+  @@index([executedAt])
+  @@index([gameDay])
+  @@map("game_actions")
 }

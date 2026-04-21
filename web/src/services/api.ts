@@ -30,10 +30,13 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 统一错误处理
+    // 统一错误处理 - 只对非admin路由清除token
     if (error.response?.status === 401) {
-      // 处理认证失败
-      localStorage.removeItem('auth_token')
+      const url = error.config?.url || ''
+      // admin路由的401不应清除token（可能是密码错误）
+      if (!url.includes('/admin/')) {
+        localStorage.removeItem('auth_token')
+      }
     }
     return Promise.reject(error)
   }

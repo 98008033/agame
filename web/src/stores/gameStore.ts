@@ -1,64 +1,32 @@
 import { create } from 'zustand'
+import { worldApi } from '../services'
 
 /**
  * 游戏状态管理
- * 管理当前游戏进度、玩家状态、NPC交互等
+ * 管理当前游戏进度
  */
 interface GameState {
-  // 当前章节ID
-  currentChapterId: string | null
-  // 当前场景ID
-  currentSceneId: string | null
-  // 玩家属性
-  playerAttributes: {
-    reputation: number
-    wealth: number
-    relationships: Record<string, number>
-  }
-  // 当前对话上下文
-  dialogueContext: {
-    npcId: string | null
-    history: Array<{ role: 'player' | 'npc'; content: string }>
-  }
-  // Actions
-  setChapter: (chapterId: string) => void
-  setScene: (sceneId: string) => void
-  updatePlayerAttributes: (attributes: Partial<GameState['playerAttributes']>) => void
-  addDialogueMessage: (message: { role: 'player' | 'npc'; content: string }) => void
-  clearDialogue: () => void
+  currentDay: number
+  historyStage: string
+  fetchWorldTime: () => Promise<void>
 }
 
 export const useGameStore = create<GameState>((set) => ({
-  currentChapterId: null,
-  currentSceneId: null,
-  playerAttributes: {
-    reputation: 0,
-    wealth: 0,
-    relationships: {},
-  },
-  dialogueContext: {
-    npcId: null,
-    history: [],
-  },
+  currentDay: 1,
+  historyStage: 'era_power_struggle',
 
-  setChapter: (chapterId) => set({ currentChapterId: chapterId }),
-  setScene: (sceneId) => set({ currentSceneId: sceneId }),
-  updatePlayerAttributes: (attributes) =>
-    set((state) => ({
-      playerAttributes: { ...state.playerAttributes, ...attributes },
-    })),
-  addDialogueMessage: (message) =>
-    set((state) => ({
-      dialogueContext: {
-        ...state.dialogueContext,
-        history: [...state.dialogueContext.history, message],
-      },
-    })),
-  clearDialogue: () =>
-    set({
-      dialogueContext: {
-        npcId: null,
-        history: [],
-      },
-    }),
+  fetchWorldTime: async () => {
+    try {
+      const response = await worldApi.getState()
+      if (response.data.success) {
+        const { time, historyStage } = response.data.data
+        set({
+          currentDay: time.day,
+          historyStage,
+        })
+      }
+    } catch (error) {
+      console.error('获取世界时间失败:', error)
+    }
+  },
 }))

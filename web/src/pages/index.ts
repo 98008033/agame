@@ -1,2 +1,12 @@
-// Placeholder for future page components
-export {}
+// Page components
+export { default as LoginPage } from './LoginPage'
+export { default as DashboardPage } from './DashboardPage'
+export { default as NovelPage } from './NovelPage'
+export { default as GamePage } from './GamePage'
+export { default as StatusPage } from './StatusPage'
+export { default as CharacterCreatePage } from './CharacterCreatePage'
+export { default as NewsPage } from './NewsPage'
+export { default as TodayPlanPage } from './TodayPlanPage'
+export { default as JournalPage } from './JournalPage'
+export { default as AdminPage } from './AdminPage'
+export { default as DeathNarrativePage } from './DeathNarrativePage'

@@ -3,7 +3,7 @@
  * 每日生成世界晨报和事件
  */
 
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 import prisma from '../models/prisma.js';
 import { llmService } from '../services/llm/index.js';
 import { promptBuilder } from './PromptBuilder.js';

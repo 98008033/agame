@@ -10,13 +10,21 @@ import { config } from 'dotenv';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { authMiddleware } from './middleware/auth.js';
+import { apiRateLimiter, ipRateLimiter } from './middleware/rateLimiter.js';
+import { wsNotificationService } from './services/websocket.js';
+import { agentScheduler } from './agents/AgentScheduler.js';
 
 import worldRoutes from './routes/world.js';
 import playerRoutes from './routes/player.js';
 import npcRoutes from './routes/npc.js';
+import npcLifecycleRoutes from './routes/npcLifecycle.js';
 import factionRoutes from './routes/faction.js';
 import authRoutes from './routes/auth.js';
 import systemRoutes from './routes/system.js';
+import actionRoutes from './routes/actions.js';
+import eventRoutes from './routes/events.js';
+import adminRoutes from './routes/admin.js';
+import narrativeRoutes from './routes/narrative.js';
 
 // Load environment variables
 config();
@@ -58,6 +66,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Request logging
 app.use(requestLogger);
 
+// Global IP rate limiter (protects all routes)
+app.use(ipRateLimiter);
+
 // ============================================
 // API Routes
 // ============================================
@@ -77,11 +88,18 @@ app.use('/v1', systemRoutes);
 // Auth routes (public)
 app.use('/v1/auth', authRoutes);
 
-// Protected routes
-app.use('/v1/world', authMiddleware, worldRoutes);
-app.use('/v1/player', authMiddleware, playerRoutes);
-app.use('/v1/npcs', authMiddleware, npcRoutes);
-app.use('/v1/factions', authMiddleware, factionRoutes);
+// Admin routes (requires admin secret)
+app.use('/v1/admin', adminRoutes);
+
+// Protected routes (with API rate limiter)
+app.use('/v1/world', authMiddleware, apiRateLimiter, worldRoutes);
+app.use('/v1/player', authMiddleware, apiRateLimiter, playerRoutes);
+app.use('/v1/npcs', authMiddleware, apiRateLimiter, npcRoutes);
+app.use('/v1/npcs/lifecycle', authMiddleware, apiRateLimiter, npcLifecycleRoutes);
+app.use('/v1/factions', authMiddleware, apiRateLimiter, factionRoutes);
+app.use('/v1/actions', authMiddleware, apiRateLimiter, actionRoutes);
+app.use('/v1/events', authMiddleware, apiRateLimiter, eventRoutes);
+app.use('/v1/narrative', authMiddleware, apiRateLimiter, narrativeRoutes);
 
 // ============================================
 // Error Handling
@@ -118,11 +136,20 @@ const server = app.listen(PORT, () => {
   console.log(`[Agame Server] Running on port ${PORT}`);
   console.log(`[Agame Server] Environment: ${process.env['NODE_ENV'] ?? 'development'}`);
   console.log(`[Agame Server] API Version: v1.0.0`);
+
+  // Initialize WebSocket notification service
+  wsNotificationService.init(server);
+
+  // Start Agent Scheduler (National + City Agents)
+  agentScheduler.start();
+  console.log('[Agame Server] Agent Scheduler started');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[Agame Server] SIGTERM received, shutting down gracefully');
+  agentScheduler.stop();
+  wsNotificationService.close();
   server.close(() => {
     console.log('[Agame Server] Process terminated');
   });
@@ -130,6 +157,8 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('[Agame Server] SIGINT received, shutting down gracefully');
+  agentScheduler.stop();
+  wsNotificationService.close();
   server.close(() => {
     console.log('[Agame Server] Process terminated');
   });

@@ -59,22 +59,22 @@ export default function ChoiceOption({
   return (
     <div
       onClick={isUnlocked ? onSelect : undefined}
-      className={`p-4 rounded-lg border-2 transition-all ${
+      className={`p-4 rounded-lg border-2 transition-all duration-300 ${
         isSelected
-          ? 'border-blue-500 bg-blue-50'
+          ? 'border-blue-500 bg-blue-50 animate-choice-select scale-[1.02]'
           : isUnlocked
-            ? 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 cursor-pointer'
+            ? 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 hover:scale-[1.01] cursor-pointer'
             : 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
       }`}
     >
       {/* 选择指示器 */}
       <div className="flex items-start gap-3">
         <div
-          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-            isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+            isSelected ? 'border-blue-500 bg-blue-500 scale-110 animate-success-pop' : 'border-gray-300'
           }`}
         >
-          {isSelected && <span className="text-white text-xs">✓</span>}
+          {isSelected && <span className="text-white text-xs animate-fadeIn">✓</span>}
         </div>
 
         <div className="flex-1">

@@ -2,9 +2,11 @@
 
 import { Router, type Request, type Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
 import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
-import { generateToken, generateRefreshToken } from '../middleware/auth.js';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../middleware/auth.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 import {
   DEFAULT_PLAYER_ATTRIBUTES,
   DEFAULT_FACTION_REPUTATION,
@@ -16,98 +18,216 @@ import {
 import { safeJsonStringify } from '../utils/index.js';
 
 const router = Router();
+const SALT_ROUNDS = 10;
 
-// POST /v1/auth/register - 玩家注册 (兼容端点，与login相同)
+// 对所有auth路由应用限流
+router.use(authRateLimiter);
+
+// POST /v1/auth/register - 用户注册（用户名+密码）
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
-  // 注册与登录逻辑相同，自动创建新玩家
-  handleLogin(req, res);
-});
-
-// POST /v1/auth/login - 玩家登录/注册
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
-  handleLogin(req, res);
-});
-
-// 提取登录逻辑为独立函数
-async function handleLogin(req: Request, res: Response): Promise<void> {
   const requestId = generateRequestId();
-  const { provider, identityToken, newPlayer } = req.body;
+  const { username, password, email, name, startingFaction } = req.body;
 
-  if (!provider || !identityToken) {
+  // 验证必填参数
+  if (!username || !password) {
     res.status(400).json(createErrorResponse(
       'INVALID_REQUEST',
       '缺少必要参数',
       requestId,
-      { required: ['provider', 'identityToken'] }
+      { required: ['username', 'password'] }
+    ));
+    return;
+  }
+
+  // 验证密码长度
+  if (password.length < 6) {
+    res.status(400).json(createErrorResponse(
+      'INVALID_REQUEST',
+      '密码长度至少6位',
+      requestId
     ));
     return;
   }
 
   try {
-    // MVP阶段：简化认证，使用identityToken作为userId
-    const userId = `${provider}_${identityToken}`;
-
-    // 查找现有玩家
-    let player = await prisma.player.findUnique({
-      where: { userId },
+    // 检查用户名是否已存在
+    const existingUser = await prisma.player.findUnique({
+      where: { userId: username },
     });
 
-    let isNew = false;
-
-    if (!player) {
-      // 新玩家注册
-      if (!newPlayer?.name) {
-        res.status(400).json(createErrorResponse(
-          'INVALID_REQUEST',
-          '新玩家需要提供名称',
-          requestId,
-          { required: ['newPlayer.name'] }
+    if (existingUser) {
+      if (existingUser.banned) {
+        res.status(403).json(createErrorResponse(
+          'ACCOUNT_BANNED',
+          '该账号已被禁止登录',
+          requestId
         ));
         return;
       }
+      res.status(409).json(createErrorResponse(
+        'CONFLICT',
+      '用户名已存在',
+      requestId
+      ));
+      return;
+    }
 
-      isNew = true;
-
-      // 确定起始阵营
-      const startingFaction = newPlayer.startingFaction && isValidFaction(newPlayer.startingFaction)
-        ? newPlayer.startingFaction
-        : 'border';
-
-      // 创建玩家ID
-      const playerId = `player_${uuidv4().substring(0, 8)}`;
-
-      // 创建初始位置
-      const initialLocation = {
-        ...DEFAULT_PLAYER_LOCATION,
-        faction: startingFaction,
-      };
-
-      // 创建初始声望
-      const initialReputation = {
-        ...DEFAULT_FACTION_REPUTATION,
-        [startingFaction]: 20, // 起始阵营初始声望+20
-      };
-
-      player = await prisma.player.create({
-        data: {
-          id: playerId,
-          userId,
-          name: newPlayer.name,
-          age: 18,
-          faction: startingFaction,
-          factionLevel: 'friendly',
-          titles: safeJsonStringify(['暮光村居民']),
-          level: 1,
-          experience: 0,
-          attributes: safeJsonStringify(DEFAULT_PLAYER_ATTRIBUTES),
-          reputation: safeJsonStringify(initialReputation),
-          skills: safeJsonStringify(DEFAULT_SKILL_SET),
-          relationships: '{}',
-          tags: '[]',
-          resources: safeJsonStringify(DEFAULT_PLAYER_RESOURCES),
-          location: safeJsonStringify(initialLocation),
-        },
+    // 检查邮箱是否已存在（如果提供了邮箱）
+    if (email) {
+      const existingEmail = await prisma.player.findUnique({
+        where: { email },
       });
+      if (existingEmail) {
+        res.status(409).json(createErrorResponse(
+          'CONFLICT',
+          '邮箱已存在',
+          requestId
+        ));
+        return;
+      }
+    }
+
+    // 加密密码
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // 创建玩家
+    const playerId = `player_${uuidv4().substring(0, 8)}`;
+    const playerName = name || username;
+    const playerFaction = startingFaction && isValidFaction(startingFaction)
+      ? startingFaction
+      : 'border';
+
+    const initialLocation = {
+      ...DEFAULT_PLAYER_LOCATION,
+      faction: playerFaction,
+    };
+
+    const initialReputation = {
+      ...DEFAULT_FACTION_REPUTATION,
+      [playerFaction]: 20,
+    };
+
+    const player = await prisma.player.create({
+      data: {
+        id: playerId,
+        userId: username,
+        name: playerName,
+        age: 18,
+        email: email || null,
+        passwordHash,
+        isGuest: false,
+        faction: playerFaction,
+        factionLevel: 'friendly',
+        titles: safeJsonStringify(['暮光村居民']),
+        level: 1,
+        experience: 0,
+        attributes: safeJsonStringify(DEFAULT_PLAYER_ATTRIBUTES),
+        reputation: safeJsonStringify(initialReputation),
+        skills: safeJsonStringify(DEFAULT_SKILL_SET),
+        relationships: '{}',
+        tags: '[]',
+        resources: safeJsonStringify(DEFAULT_PLAYER_RESOURCES),
+        location: safeJsonStringify(initialLocation),
+      },
+    });
+
+    // 获取世界状态
+    const worldState = await prisma.worldState.findFirst({
+      orderBy: { day: 'desc' },
+    });
+
+    // 生成token
+    const token = generateToken(player.id);
+    const refreshToken = generateRefreshToken(player.id);
+
+    res.json(createSuccessResponse({
+      success: true,
+      auth: {
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        refreshToken,
+      },
+      player: {
+        id: player.id,
+        name: player.name,
+        isNew: true,
+        faction: player.faction,
+        level: player.level,
+      },
+      gameState: {
+        currentDay: worldState?.day ?? 1,
+        historyStage: worldState?.historyStage ?? 'era_power_struggle',
+        pendingEventsCount: 0,
+      },
+      newPlayerWelcome: {
+        startingLocation: '暮光村',
+        initialAttributes: DEFAULT_PLAYER_ATTRIBUTES,
+        initialSkills: DEFAULT_SKILL_SET,
+        narrativeIntro: '你站在暮光村的小路上，晨光穿过稀薄的云层，照亮了这座边境小镇...',
+      },
+    }, requestId));
+  } catch (err) {
+    console.error('[Register Error]', err);
+    res.status(500).json(createErrorResponse(
+      'INTERNAL_ERROR',
+      '注册失败',
+      requestId,
+      undefined,
+      true
+    ));
+  }
+});
+
+// POST /v1/auth/login - 用户登录（用户名+密码）
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
+  const requestId = generateRequestId();
+  const { username, password } = req.body;
+
+  // 验证必填参数
+  if (!username || !password) {
+    res.status(400).json(createErrorResponse(
+      'INVALID_REQUEST',
+      '缺少必要参数',
+      requestId,
+      { required: ['username', 'password'] }
+    ));
+    return;
+  }
+
+  try {
+    // 查找用户
+    const player = await prisma.player.findUnique({
+      where: { userId: username },
+    });
+
+    if (!player || !player.passwordHash) {
+      res.status(401).json(createErrorResponse(
+        'UNAUTHORIZED',
+        '用户名或密码错误',
+        requestId
+      ));
+      return;
+    }
+
+    // 检查是否被禁止登录
+    if (player.banned) {
+      res.status(403).json(createErrorResponse(
+        'ACCOUNT_BANNED',
+        '该账号已被禁止登录',
+        requestId
+      ));
+      return;
+    }
+
+    // 验证密码
+    const isValid = await bcrypt.compare(password, player.passwordHash);
+    if (!isValid) {
+      res.status(401).json(createErrorResponse(
+        'UNAUTHORIZED',
+        '用户名或密码错误',
+        requestId
+      ));
+      return;
     }
 
     // 获取世界状态
@@ -134,7 +254,7 @@ async function handleLogin(req: Request, res: Response): Promise<void> {
       player: {
         id: player.id,
         name: player.name,
-        isNew,
+        isNew: false,
         faction: player.faction,
         level: player.level,
       },
@@ -143,14 +263,6 @@ async function handleLogin(req: Request, res: Response): Promise<void> {
         historyStage: worldState?.historyStage ?? 'era_power_struggle',
         pendingEventsCount,
       },
-      ...(isNew ? {
-        newPlayerWelcome: {
-          startingLocation: '暮光村',
-          initialAttributes: DEFAULT_PLAYER_ATTRIBUTES,
-          initialSkills: DEFAULT_SKILL_SET,
-          narrativeIntro: '你站在暮光村的小路上，晨光穿过稀薄的云层，照亮了这座边境小镇...',
-        },
-      } : {}),
     }, requestId));
   } catch (err) {
     console.error('[Login Error]', err);
@@ -162,7 +274,104 @@ async function handleLogin(req: Request, res: Response): Promise<void> {
       true
     ));
   }
-}
+});
+
+// POST /v1/auth/guest - 游客登录（MVP简化模式）
+router.post('/guest', async (req: Request, res: Response): Promise<void> => {
+  const requestId = generateRequestId();
+  const { name, startingFaction } = req.body;
+
+  // 游客模式：允许不传name，使用默认名称
+  const playerName = name || `旅行者_${Math.floor(Math.random() * 10000)}`;
+  const playerFaction = startingFaction && isValidFaction(startingFaction)
+    ? startingFaction
+    : 'border';
+
+  try {
+    // 生成唯一的游客ID
+    const guestId = `guest_${uuidv4().substring(0, 8)}`;
+    const playerId = `player_${uuidv4().substring(0, 8)}`;
+
+    // 创建初始位置
+    const initialLocation = {
+      ...DEFAULT_PLAYER_LOCATION,
+      faction: playerFaction,
+    };
+
+    // 创建初始声望
+    const initialReputation = {
+      ...DEFAULT_FACTION_REPUTATION,
+      [playerFaction]: 20,
+    };
+
+    const player = await prisma.player.create({
+      data: {
+        id: playerId,
+        userId: guestId,
+        name: playerName,
+        age: 18,
+        isGuest: true,
+        faction: playerFaction,
+        factionLevel: 'friendly',
+        titles: safeJsonStringify(['暮光村居民']),
+        level: 1,
+        experience: 0,
+        attributes: safeJsonStringify(DEFAULT_PLAYER_ATTRIBUTES),
+        reputation: safeJsonStringify(initialReputation),
+        skills: safeJsonStringify(DEFAULT_SKILL_SET),
+        relationships: '{}',
+        tags: '[]',
+        resources: safeJsonStringify(DEFAULT_PLAYER_RESOURCES),
+        location: safeJsonStringify(initialLocation),
+      },
+    });
+
+    // 获取世界状态
+    const worldState = await prisma.worldState.findFirst({
+      orderBy: { day: 'desc' },
+    });
+
+    // 生成token
+    const token = generateToken(player.id);
+    const refreshToken = generateRefreshToken(player.id);
+
+    res.json(createSuccessResponse({
+      success: true,
+      auth: {
+        token,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        refreshToken,
+      },
+      player: {
+        id: player.id,
+        name: player.name,
+        isNew: true,
+        faction: player.faction,
+        level: player.level,
+      },
+      gameState: {
+        currentDay: worldState?.day ?? 1,
+        historyStage: worldState?.historyStage ?? 'era_power_struggle',
+        pendingEventsCount: 0,
+      },
+      newPlayerWelcome: {
+        startingLocation: '暮光村',
+        initialAttributes: DEFAULT_PLAYER_ATTRIBUTES,
+        initialSkills: DEFAULT_SKILL_SET,
+        narrativeIntro: '你站在暮光村的小路上，晨光穿过稀薄的云层，照亮了这座边境小镇...',
+      },
+    }, requestId));
+  } catch (err) {
+    console.error('[Guest Login Error]', err);
+    res.status(500).json(createErrorResponse(
+      'INTERNAL_ERROR',
+      '游客登录失败',
+      requestId,
+      undefined,
+      true
+    ));
+  }
+});
 
 // POST /v1/auth/refresh - 刷新token
 router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
@@ -203,6 +412,16 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 检查是否被禁止登录
+    if (player.banned) {
+      res.status(403).json(createErrorResponse(
+        'ACCOUNT_BANNED',
+        '该账号已被禁止登录',
+        requestId
+      ));
+      return;
+    }
+
     // 生成新token
     const newToken = generateToken(player.id);
     const newRefreshToken = generateRefreshToken(player.id);
@@ -226,7 +445,5 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
     ));
   }
 });
-
-import { verifyRefreshToken } from '../middleware/auth.js';
 
 export default router;

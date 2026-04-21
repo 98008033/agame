@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { playerApi } from '../services'
+import { eventsApi, playerApi } from '../services'
 
 /**
  * 游戏事件Store
@@ -26,21 +26,26 @@ export interface EventChoice {
   index: number
   text: string
   description: string
-  // 技能需求
+  label?: string // 从API返回
+  narrativeOutcome?: string
+  consequences?: Array<{
+    type: string
+    target?: string
+    value: number
+    description: string
+  }>
   skillRequirement?: {
     skillId: string
     skillName: string
     level: number
     reason: string
   }
-  // 代价
   costs?: {
     gold?: number
     influence?: number
     reputation?: Partial<Record<Faction, number>>
     description: string
   }
-  // 收益预览
   rewards?: {
     gold?: number
     influence?: number
@@ -48,11 +53,10 @@ export interface EventChoice {
     items?: string[]
     description: string
   }
-  // 风险等级
   riskLevel: RiskLevel
-  // 是否可选择
   isUnlocked: boolean
   cannotChooseReason?: string
+  triggeredEvent?: string
 }
 
 // 游戏事件
@@ -102,12 +106,21 @@ interface EventState {
   isLoading: boolean
   // 当前处理中的事件ID
   processingEventId: string | null
+  // 可触发的事件模板
+  availableTemplates: Array<{
+    id: string
+    title: string
+    category: string
+    importance: string
+  }>
 
   // 操作
   loadActiveEvents: () => Promise<void>
   setCurrentEvent: (event: GameEvent | null) => void
   makeDecision: (eventId: string, choiceIndex: number) => Promise<DecisionResult>
   setActiveEvents: (events: GameEvent[]) => void
+  generateEvent: (templateId?: string, category?: string) => Promise<GameEvent | null>
+  checkAvailableTriggers: () => Promise<void>
 }
 
 // Mock数据用于测试
@@ -209,6 +222,7 @@ export const useEventStore = create<EventState>((set) => ({
   decisionHistory: [],
   isLoading: false,
   processingEventId: null,
+  availableTemplates: [],
 
   loadActiveEvents: async () => {
     set({ isLoading: true })
@@ -217,14 +231,14 @@ export const useEventStore = create<EventState>((set) => ({
       if (response.data.success) {
         const data = response.data.data
         // 将API返回的事件转换为GameEvent格式
-        const events: GameEvent[] = data.events.map((e: {
+        const events: GameEvent[] = data.events?.map((e: {
           id: string;
           type: string;
           category: string;
           title: string;
           description: string;
-          scope: string;
-          choicesPreview: Array<{ index: number; label: string; description: string }>;
+          narrativeText?: string;
+          choices: string | Array<{ index: number; label: string; description: string }>;
           createdAt: string;
           expiresAt?: string;
           importance: string;
@@ -234,24 +248,35 @@ export const useEventStore = create<EventState>((set) => ({
           source: 'chronos' as const,
           title: e.title,
           description: e.description,
-          narrativeText: e.description,
-          choices: e.choicesPreview.map((c) => ({
-            id: `choice_${c.index}`,
-            index: c.index,
-            text: c.label,
-            description: c.description,
-            riskLevel: 'medium' as RiskLevel,
-            isUnlocked: true,
-          })),
+          narrativeText: e.narrativeText || e.description,
+          choices: typeof e.choices === 'string'
+            ? JSON.parse(e.choices).map((c: { index: number; label: string; description: string }) => ({
+                id: `choice_${c.index}`,
+                index: c.index,
+                text: c.label,
+                label: c.label,
+                description: c.description,
+                riskLevel: 'medium' as RiskLevel,
+                isUnlocked: true,
+              }))
+            : e.choices.map((c) => ({
+                id: `choice_${c.index}`,
+                index: c.index,
+                text: c.label,
+                label: c.label,
+                description: c.description,
+                riskLevel: 'medium' as RiskLevel,
+                isUnlocked: true,
+              })),
           triggeredAt: 1,
           importance: e.importance as 'minor' | 'normal' | 'major' | 'critical',
           relatedNPCs: [],
-        }))
+        })) || []
         set({ activeEvents: events, isLoading: false })
       }
     } catch (error) {
       console.error('加载事件失败:', error)
-      // 如果API失败，回退到mock数据
+      // 如果API失败，保留mock数据用于演示
       set({ isLoading: false })
     }
   },
@@ -262,19 +287,22 @@ export const useEventStore = create<EventState>((set) => ({
     set({ processingEventId: eventId })
 
     try {
-      const response = await playerApi.submitDecision(eventId, choiceIndex)
+      const response = await eventsApi.decide(eventId, choiceIndex)
       if (response.data.success) {
         const data = response.data.data
+        const consequences = data.consequences || {}
         const result: DecisionResult = {
           eventId,
           choiceIndex,
           success: true,
           narrativeFeedback: data.narrativeFeedback || '你做出了选择，命运之轮开始转动...',
           consequences: {
-            gold: data.immediateConsequences?.changes?.gold,
-            reputation: data.immediateConsequences?.changes?.reputation,
+            gold: consequences.resources?.gold,
+            influence: consequences.resources?.influence,
+            reputation: consequences.reputation,
+            newTags: consequences.tags,
           },
-          triggeredEvents: data.triggeredEvents,
+          triggeredEvents: data.triggeredEvent ? [data.triggeredEvent.id] : undefined,
         }
 
         set((state) => ({
@@ -310,4 +338,61 @@ export const useEventStore = create<EventState>((set) => ({
   },
 
   setActiveEvents: (events) => set({ activeEvents: events }),
+
+  generateEvent: async (templateId?: string, category?: string) => {
+    set({ isLoading: true })
+    try {
+      const response = await eventsApi.generate(templateId, category)
+      if (response.data.success) {
+        const data = response.data.data
+        const eventData = data.event
+        // 解析choices，可能是字符串或数组
+        const choices = typeof eventData.choices === 'string'
+          ? JSON.parse(eventData.choices)
+          : eventData.choices || []
+
+        const newEvent: GameEvent = {
+          id: eventData.id,
+          type: (eventData.type || 'personal_event') as EventType,
+          source: 'chronos' as const,
+          title: eventData.title,
+          description: eventData.description || '',
+          narrativeText: eventData.narrativeText || eventData.description || '',
+          choices: choices.map((c: { index: number; label: string; description: string }) => ({
+            id: `choice_${c.index}`,
+            index: c.index,
+            text: c.label,
+            label: c.label,
+            description: c.description,
+            riskLevel: 'medium' as RiskLevel,
+            isUnlocked: true,
+          })),
+          triggeredAt: data.gameDay || 1,
+          importance: (eventData.importance || 'normal') as 'minor' | 'normal' | 'major' | 'critical',
+          relatedNPCs: [],
+        }
+        set((state) => ({
+          activeEvents: [...state.activeEvents, newEvent],
+          isLoading: false,
+        }))
+        return newEvent
+      }
+    } catch (error) {
+      console.error('生成事件失败:', error)
+      set({ isLoading: false })
+    }
+    return null
+  },
+
+  checkAvailableTriggers: async () => {
+    try {
+      const response = await eventsApi.checkTriggers()
+      if (response.data.success) {
+        const data = response.data.data
+        set({ availableTemplates: data.matchingTemplates || [] })
+      }
+    } catch (error) {
+      console.error('检查触发条件失败:', error)
+    }
+  },
 }))

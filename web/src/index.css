@@ -1,21 +1,665 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Custom global styles */
+/* Agame 简洁现代风格 - CSS变量系统 */
 :root {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* 基础色系 - 深蓝灰调 */
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #334155;
+  --bg-elevated: #475569;
+
+  /* 文字色 */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  /* 强调色 */
+  --accent-blue: #3B82F6;
+  --accent-green: #10B981;
+  --accent-red: #EF4444;
+  --accent-gold: #F59E0B;
+  --accent-purple: #8B5CF6;
+
+  /* 阵营色 - 柔和版本 */
+  --faction-canglong: #22C55E;
+  --faction-shuanglang: #0EA5E9;
+  --faction-jinque: #F97316;
+  --faction-border: #A855F7;
+
+  /* 状态色 */
+  --status-success: #10B981;
+  --status-warning: #F59E0B;
+  --status-danger: #EF4444;
+  --status-info: #3B82F6;
+
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* 字体 */
+  font-family: 'Inter', 'LXGW WenKai', system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+
+  /* 像素风别名 - 兼容 TodayPlanPage 等组件 */
+  --pixel-bg-dark: #0F172A;       /* = --bg-primary */
+  --pixel-bg-mid: #1E293B;        /* = --bg-secondary */
+  --pixel-bg-paper: #334155;      /* = --bg-card */
+  --pixel-text-light: #F8FAFC;    /* = --text-primary */
+  --pixel-text-dark: #94A3B8;     /* = --text-secondary */
+  --pixel-exp: #F59E0B;           /* = --accent-gold */
+  --pixel-health: #EF4444;        /* = --accent-red */
 }
 
+/* 全局样式 */
 body {
   margin: 0;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* 现代卡片样式 */
+.card-modern {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-modern-alt {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: var(--space-md);
+}
+
+/* 兼容旧类名 - stone-panel */
+.stone-panel {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* 兼容旧类名 - paper-panel */
+.paper-panel {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* 阵营卡片 */
+.faction-card-canglong {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid var(--faction-canglong);
+  border-radius: var(--radius-md);
+}
+
+.faction-card-shuanglang {
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid var(--faction-shuanglang);
+  border-radius: var(--radius-md);
+}
+
+.faction-card-jinque {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid var(--faction-jinque);
+  border-radius: var(--radius-md);
+}
+
+.faction-card-border {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid var(--faction-border);
+  border-radius: var(--radius-md);
+}
+
+/* 兼容旧类名 */
+.faction-panel-canglong {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid var(--faction-canglong);
+}
+
+.faction-panel-shuanglang {
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid var(--faction-shuanglang);
+}
+
+.faction-panel-jinque {
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid var(--faction-jinque);
+}
+
+.faction-panel-border {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid var(--faction-border);
+}
+
+/* 现代按钮 */
+.btn-modern {
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-modern:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent-blue);
+}
+
+.btn-modern:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563EB;
+}
+
+.btn-success {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+}
+
+.btn-danger {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+}
+
+/* 兼容旧类名 - pixel-btn */
+.pixel-btn {
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pixel-btn:hover {
+  background: var(--bg-elevated);
+  transform: translateY(-1px);
+}
+
+/* 兼容旧类名 - danger-btn */
+.danger-btn {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+}
+
+/* 现代进度条 */
+.progress-modern {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width 0.5s ease;
+}
+
+.progress-fill-blue {
+  background: var(--accent-blue);
+}
+
+.progress-fill-green {
+  background: var(--accent-green);
+}
+
+.progress-fill-gold {
+  background: var(--accent-gold);
+}
+
+.progress-fill-red {
+  background: var(--accent-red);
+}
+
+/* 兼容旧类名 - pixel-progress */
+.pixel-progress {
+  height: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pixel-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width 0.5s ease;
+}
+
+/* 分隔线 */
+.divider-modern {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: var(--space-md) 0;
+}
+
+/* 兼容旧类名 */
+.pixel-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: var(--space-md) 0;
+}
+
+/* 标签样式 */
+.tag-modern {
+  display: inline-flex;
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tag-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-green);
+}
+
+.tag-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-gold);
+}
+
+.tag-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+/* 输入框 */
+.input-modern {
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-modern:focus {
+  border-color: var(--accent-blue);
+}
+
+.input-modern::placeholder {
+  color: var(--text-muted);
+}
+
+/* 头部导航 */
+.header-modern {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--space-md);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* 响应式容器 */
+.container-modern {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-md);
+}
+
+.container-wide {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* 决策确认动画 */
+@keyframes decisionConfirm {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--accent-gold);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 transparent;
+  }
+}
+
+/* AP消耗动画 */
+@keyframes apConsume {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-10px);
+    color: var(--accent-red);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 数字变化闪烁动画 */
+@keyframes numberFlash {
+  0%, 100% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.3;
+    transform: scale(1.1);
+  }
+  50% {
+    opacity: 1;
+    color: var(--accent-green);
+  }
+  75% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+/* 成功/失败动画 */
+@keyframes successPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes failShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-5px);
+  }
+  40%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+/* 选项选中动画 */
+@keyframes choiceSelect {
+  0% {
+    border-color: transparent;
+    background-color: transparent;
+  }
+  100% {
+    border-color: var(--accent-blue);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* 属性变化动画 */
+@keyframes attrChange {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes attrDecrease {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: rgba(239, 68, 68, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* 关系变化动画 */
+@keyframes relationPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.1);
+    filter: brightness(1.3);
+  }
+}
+
+/* 奖励弹出动画 */
+@keyframes rewardPop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  70% {
+    transform: translateY(-5px) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 进度条平滑变化 */
+@keyframes progressGrow {
+  from {
+    width: 0;
+  }
+}
+
+/* 属性条动画入场 */
+@keyframes attrBarEnter {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease infinite;
+}
+
+.animate-decision-confirm {
+  animation: decisionConfirm 0.5s ease;
+}
+
+.animate-ap-consume {
+  animation: apConsume 0.6s ease;
+}
+
+.animate-number-flash {
+  animation: numberFlash 0.8s ease;
+}
+
+.animate-success-pop {
+  animation: successPop 0.4s ease;
+}
+
+.animate-fail-shake {
+  animation: failShake 0.4s ease;
+}
+
+.animate-choice-select {
+  animation: choiceSelect 0.3s ease forwards;
+}
+
+.animate-attr-change {
+  animation: attrChange 0.6s ease;
+}
+
+.animate-attr-decrease {
+  animation: attrDecrease 0.6s ease;
+}
+
+.animate-relation-pulse {
+  animation: relationPulse 0.5s ease;
+}
+
+.animate-reward-pop {
+  animation: rewardPop 0.5s ease;
+}
+
+.animate-progress-grow {
+  animation: progressGrow 0.5s ease;
+}
+
+.animate-attr-bar-enter {
+  animation: attrBarEnter 0.4s ease forwards;
+}
+
+/* 通知滑入动画 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+/* 紧急提示 */
+.urgent-warning {
+  border-color: var(--accent-red);
+  animation: pulse 1s ease infinite;
+}
+
+/* 去掉旧像素样式 - 保留类名但简化 */
+.pixel-font {
+  font-family: inherit;
+}
+
+.pixel-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pixel-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.pixel-art {
+  image-rendering: auto;
+}
+
+/* 简化魔法效果 */
+.magic-glow-green,
+.magic-glow-blue,
+.magic-glow-gold,
+.magic-glow-purple {
+  border: 1px solid currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* 魔法按钮简化 */
+.magic-btn {
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent-purple);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.magic-btn:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+/* 字体类 */
+.font-display {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.font-body {
+  font-weight: 400;
 }

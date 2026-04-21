@@ -22,6 +22,116 @@ export type RelationshipLevel =
 // 阵营等级
 export type FactionLevel = 'neutral' | 'friendly' | 'member' | 'officer' | 'leader'
 
+// 社会阶层
+export type SocialClass = 'commoner' | 'gentry' | 'noble' | 'royalty'
+
+// 技能类型
+export type SkillCategory = 'strategy' | 'combat' | 'business' | 'general'
+
+// 技能ID
+export type SkillId =
+  | 'intelligence_analysis' // 情报分析（谋略1-3）
+  | 'political_control' // 政治操控（谋略4-6）
+  | 'combat_technique' // 战斗技巧（武力1-3）
+  | 'military_command' // 军事指挥（武力4-6）
+  | 'business_trade' // 商业贸易（经营1-3）
+  | 'industry_management' // 产业管理（经营4-6）
+  | 'survival' // 生存能力（通用1-3）
+
+// 技能定义
+export interface SkillDefinition {
+  id: SkillId
+  name: string
+  category: SkillCategory
+  maxLevel: number
+  prerequisite?: SkillId
+  prerequisiteLevel?: number
+  description: string
+  icon: string
+}
+
+// 玩家技能状态
+export interface PlayerSkill {
+  skillId: SkillId
+  level: number
+  experience: number
+  unlockedAt?: string
+}
+
+// 技能配置表
+export const skillDefinitions: SkillDefinition[] = [
+  {
+    id: 'survival',
+    name: '生存能力',
+    category: 'general',
+    maxLevel: 3,
+    description: '基础生存技能，野外生存、基础交流',
+    icon: '🏕️',
+  },
+  {
+    id: 'intelligence_analysis',
+    name: '情报分析',
+    category: 'strategy',
+    maxLevel: 3,
+    description: '发现隐藏的叙事线索，收集情报',
+    icon: '🔍',
+  },
+  {
+    id: 'political_control',
+    name: '政治操控',
+    category: 'strategy',
+    maxLevel: 6,
+    prerequisite: 'intelligence_analysis',
+    prerequisiteLevel: 3,
+    description: '参与高层会议，影响决策，建立派系',
+    icon: '🏛️',
+  },
+  {
+    id: 'combat_technique',
+    name: '战斗技巧',
+    category: 'combat',
+    maxLevel: 3,
+    description: '街头格斗、护送任务、击退野兽',
+    icon: '⚔️',
+  },
+  {
+    id: 'military_command',
+    name: '军事指挥',
+    category: 'combat',
+    maxLevel: 6,
+    prerequisite: 'combat_technique',
+    prerequisiteLevel: 3,
+    description: '指挥小队作战，战术布局，攻城战',
+    icon: '🎖️',
+  },
+  {
+    id: 'business_trade',
+    name: '商业贸易',
+    category: 'business',
+    maxLevel: 3,
+    description: '小商贩、跑腿送货、简单买卖',
+    icon: '💰',
+  },
+  {
+    id: 'industry_management',
+    name: '产业管理',
+    category: 'business',
+    maxLevel: 6,
+    prerequisite: 'business_trade',
+    prerequisiteLevel: 3,
+    description: '管理矿山农场，雇佣工人，扩大生产',
+    icon: '🏭',
+  },
+]
+
+// 社会阶层配置
+export const socialClassConfig: Record<SocialClass, { name: string; icon: string; requirements: { level: number; influence: number; factionLevel?: FactionLevel } }> = {
+  commoner: { name: '平民', icon: '👤', requirements: { level: 1, influence: 0 } },
+  gentry: { name: '绅士', icon: '🎩', requirements: { level: 5, influence: 50 } },
+  noble: { name: '贵族', icon: '👑', requirements: { level: 10, influence: 200, factionLevel: 'member' } },
+  royalty: { name: '王族', icon: '🏰', requirements: { level: 20, influence: 500, factionLevel: 'leader' } },
+}
+
 // 出身类型
 export type OriginType = 'merchant' | 'soldier' | 'scholar' | 'commoner' | 'noble'
 
@@ -60,12 +170,16 @@ export interface PlayerState {
   origin: OriginType | null
   faction: Faction | null
   factionLevel: FactionLevel
+  socialClass: SocialClass
   level: number
   experience: number
   attributes: PlayerAttributes
+  skills: PlayerSkill[]
   resources: {
     gold: number
     influence: number
+    food?: number
+    materials?: number
   }
   tags: string[]
   isNew: boolean
@@ -78,6 +192,7 @@ interface PlayerStoreState {
   isLoading: boolean
 
   // 操作
+  setPlayer: (player: Partial<PlayerState>) => void
   createCharacter: (data: {
     name: string
     age: number
@@ -91,6 +206,13 @@ interface PlayerStoreState {
   addExperience: (exp: number) => void
   addTag: (tag: string) => void
   removeTag: (tag: string) => void
+  // 技能操作
+  addSkillExp: (skillId: SkillId, exp: number) => void
+  unlockSkill: (skillId: SkillId) => void
+  getSkillLevel: (skillId: SkillId) => number
+  canUnlockSkill: (skillId: SkillId) => boolean
+  // 社会阶层
+  updateSocialClass: () => void
 }
 
 // 出身配置表
@@ -163,21 +285,40 @@ const initialPlayerState: PlayerState = {
   origin: null,
   faction: null,
   factionLevel: 'neutral',
+  socialClass: 'commoner',
   level: 1,
   experience: 0,
   attributes: defaultAttributes,
+  skills: [{ skillId: 'survival', level: 1, experience: 0 }], // 默认拥有生存技能
   resources: {
     gold: 0,
     influence: 0,
+    food: 0,
+    materials: 0,
   },
   tags: [],
   isNew: true,
 }
 
-export const usePlayerStore = create<PlayerStoreState>((set) => ({
+// 技能经验阈值（每级需要多少经验）
+export const skillExpThresholds: Record<number, number> = {
+  1: 0,
+  2: 100,
+  3: 300,
+  4: 600,
+  5: 1000,
+  6: 1500,
+}
+
+export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
   player: initialPlayerState,
   isCreating: false,
   isLoading: false,
+
+  setPlayer: (playerData) =>
+    set((state) => ({
+      player: { ...state.player, ...playerData, isNew: false },
+    })),
 
   createCharacter: async (data) => {
     set({ isCreating: true })
@@ -190,17 +331,15 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
         return
       }
 
-      // 调用后端API创建角色
-      const response = await authApi.login('test', `user_${Date.now()}`, {
-        name: data.name,
-        startingFaction: data.faction,
-      })
+      // 调用后端API创建角色（使用游客登录接口）
+      const response = await authApi.guest(data.name, data.faction)
 
       if (response.data.success) {
         const { auth, player, newPlayerWelcome } = response.data.data
 
-        // 保存token到localStorage
+        // 保存token和userId到localStorage
         localStorage.setItem('auth_token', auth.token)
+        localStorage.setItem('user_id', player.id)
 
         // 创建本地状态
         const newPlayer: PlayerState = {
@@ -210,9 +349,11 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
           origin: data.origin,
           faction: player.faction as Faction,
           factionLevel: player.isNew ? 'friendly' : 'neutral',
+          socialClass: 'commoner',
           level: player.level,
           experience: 0,
           attributes: newPlayerWelcome?.initialAttributes || defaultAttributes,
+          skills: [{ skillId: 'survival', level: 1, experience: 0 }],
           resources: originConfig.startingResources,
           tags: [`origin_${data.origin}`],
           isNew: player.isNew,
@@ -232,6 +373,8 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
       const response = await playerApi.getStatus()
       if (response.data.success) {
         const data = response.data.data
+        // 兼容后端返回的resources结构
+        const backendResources = data.resources || {}
         const player: PlayerState = {
           id: data.id,
           name: data.name,
@@ -239,10 +382,17 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
           origin: null,
           faction: data.faction as Faction,
           factionLevel: data.factionLevel as FactionLevel,
+          socialClass: data.socialClass || 'commoner',
           level: data.level,
           experience: data.experience,
           attributes: data.attributes,
-          resources: data.resources,
+          skills: data.skills || [{ skillId: 'survival', level: 1, experience: 0 }],
+          resources: {
+            gold: backendResources.gold || 0,
+            influence: backendResources.influence || 10, // 默认影响力
+            food: backendResources.food,
+            materials: backendResources.materials,
+          },
           tags: data.tags,
           isNew: false,
         }
@@ -302,4 +452,63 @@ export const usePlayerStore = create<PlayerStoreState>((set) => ({
         tags: state.player.tags.filter((t) => t !== tag),
       },
     })),
+
+  // 技能操作
+  addSkillExp: (skillId, exp) =>
+    set((state) => {
+      const skills = [...state.player.skills]
+      const existingSkill = skills.find((s) => s.skillId === skillId)
+
+      if (existingSkill) {
+        existingSkill.experience += exp
+        const definition = skillDefinitions.find((d) => d.id === skillId)
+        if (definition) {
+          const nextLevel = existingSkill.level + 1
+          if (nextLevel <= definition.maxLevel && existingSkill.experience >= skillExpThresholds[nextLevel]) {
+            existingSkill.level = nextLevel
+          }
+        }
+      }
+      return { player: { ...state.player, skills } }
+    }),
+
+  unlockSkill: (skillId) =>
+    set((state) => {
+      const skills = [...state.player.skills]
+      if (!skills.find((s) => s.skillId === skillId)) {
+        skills.push({ skillId, level: 1, experience: 0, unlockedAt: new Date().toISOString() })
+      }
+      return { player: { ...state.player, skills } }
+    }),
+
+  getSkillLevel: (skillId) => {
+    const skill = get().player.skills.find((s) => s.skillId === skillId)
+    return skill?.level || 0
+  },
+
+  canUnlockSkill: (skillId) => {
+    const definition = skillDefinitions.find((d) => d.id === skillId)
+    if (!definition) return false
+    if (!definition.prerequisite) return true
+    const prereqLevel = get().getSkillLevel(definition.prerequisite)
+    return prereqLevel >= (definition.prerequisiteLevel || 1)
+  },
+
+  // 社会阶层更新
+  updateSocialClass: () =>
+    set((state) => {
+      const { level, factionLevel } = state.player
+      const influence = state.player.resources.influence
+      let newClass: SocialClass = 'commoner'
+
+      if (level >= 20 && influence >= 500 && (factionLevel === 'leader' || factionLevel === 'officer')) {
+        newClass = 'royalty'
+      } else if (level >= 10 && influence >= 200 && (factionLevel === 'member' || factionLevel === 'officer' || factionLevel === 'leader')) {
+        newClass = 'noble'
+      } else if (level >= 5 && influence >= 50) {
+        newClass = 'gentry'
+      }
+
+      return { player: { ...state.player, socialClass: newClass } }
+    }),
 }))

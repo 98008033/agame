@@ -13,11 +13,11 @@ const fontSizeMap: Record<string, string> = {
   xlarge: 'text-xl',
 }
 
-// 主题背景映射
+// 主题背景映射 - 像素奇幻风格
 const themeBgMap: Record<string, string> = {
-  light: 'bg-white',
-  dark: 'bg-gray-900',
-  sepia: 'bg-amber-50',
+  light: 'bg-[var(--pixel-bg-light)]',
+  dark: 'bg-[var(--pixel-bg-dark)]',
+  sepia: 'bg-[var(--pixel-bg-paper)]',
 }
 
 export default function NovelReader() {
@@ -59,8 +59,8 @@ export default function NovelReader() {
 
   if (!currentChapter) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">加载中...</p>
+      <div className="flex items-center justify-center h-screen bg-[var(--pixel-bg-dark)]">
+        <p className="text-[var(--pixel-text-light)] pixel-font">加载中...</p>
       </div>
     )
   }
@@ -104,10 +104,10 @@ export default function NovelReader() {
         hasNext={nextChapter !== null}
       />
 
-      {/* 阅读进度条 */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50">
+      {/* 阅读进度条 - 像素风格 */}
+      <div className="fixed top-0 left-0 right-0 h-1 bg-[var(--pixel-bg-mid)] z-50">
         <div
-          className="h-full bg-blue-500 transition-all duration-150"
+          className="h-full bg-[var(--pixel-exp)] transition-all duration-150"
           style={{ width: `${scrollProgress * 100}%` }}
         />
       </div>
@@ -120,23 +120,19 @@ export default function NovelReader() {
           ))}
         </article>
 
-        {/* 章节底部导航 */}
-        <div className="mt-12 pt-6 border-t border-gray-200 flex items-center justify-between">
+        {/* 章节底部导航 - 像素风格 */}
+        <div className="mt-12 pt-6 border-t-2 border-[var(--pixel-bg-mid)] flex items-center justify-between">
           <button
             onClick={handlePrev}
             disabled={!prevChapter}
-            className={`px-4 py-2 rounded ${
-              prevChapter
-                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-            }`}
+            className={`pixel-btn ${!prevChapter ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             ◀ 上一回
           </button>
 
           <button
             onClick={() => setShowChapterList(true)}
-            className="px-4 py-2 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"
+            className="pixel-btn bg-[var(--pixel-bg-mid)]"
           >
             回目列表
           </button>
@@ -144,11 +140,7 @@ export default function NovelReader() {
           <button
             onClick={handleNext}
             disabled={!nextChapter}
-            className={`px-4 py-2 rounded ${
-              nextChapter
-                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                : 'bg-gray-50 text-gray-400 cursor-not-allowed'
-            }`}
+            className={`pixel-btn ${!nextChapter ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             下一回 ▶
           </button>

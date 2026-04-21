@@ -192,6 +192,7 @@ export interface PlayerResources {
   gold: number;
   food: number;
   materials: number;
+  influence: number;  // 玩家影响力
   specialItems?: Record<string, number>;
 }
 
@@ -199,6 +200,7 @@ export const DEFAULT_PLAYER_RESOURCES: PlayerResources = {
   gold: 100,
   food: 20,
   materials: 10,
+  influence: 10,  // 默认影响力
 };
 
 // ============================================
@@ -306,4 +308,167 @@ export function clampAttribute(name: string, value: number): number {
 
 export function clampReputation(value: number): number {
   return Math.max(-100, Math.min(100, value));
+}
+
+// ============================================
+// Action Point (AP) System
+// ============================================
+
+export const MAX_ACTION_POINTS = 6;
+export const MAX_STORED_AP = 3; // Can store up to +3 AP
+
+export interface ActionPointState {
+  current: number;          // Today's available AP
+  stored: number;           // Stored AP from previous days (max 3)
+  maxDaily: number;         // Maximum daily AP (default 6)
+  bonuses: APBonus[];
+}
+
+export interface APBonus {
+  source: string;           // What provides the bonus
+  value: number;            // How much AP bonus
+  expiresAt?: string;       // When it expires
+}
+
+// ============================================
+// Action Types
+// ============================================
+
+export type ActionType =
+  // 个人成长行动
+  | 'practice_skill'        // 练习技能 1AP
+  | 'learn_skill'           // 学习技能 2AP
+  | 'meditation'            // 闭关修炼 3AP
+  | 'read_books'            // 阅读典籍 1AP
+  // 资源获取行动
+  | 'gather_resources'      // 采集资源 2AP
+  | 'hunt_monsters'         // 打怪狩猎 3AP
+  | 'work_job'              // 工作赚钱 2AP
+  | 'trade'                 // 交易买卖 1AP
+  | 'invest'                // 投资经营 2AP
+  // 社交行动
+  | 'visit_npc'             // 拜访NPC 1AP
+  | 'gift_npc'              // 送礼讨好 1AP + 物品
+  | 'help_npc'              // 帮助NPC 1-2AP
+  | 'request_help'          // 请NPC帮忙 1AP
+  | 'attend_event'          // 参加聚会 2AP
+  // 事件参与行动
+  | 'handle_event'          // 处理事件 1-3AP
+  | 'initiate_action'       // 发起行动 2-4AP
+  | 'investigate'           // 调查线索 1AP
+  | 'attend_meeting';       // 参加会议 2AP
+
+export type ActionCategory = 'growth' | 'resource' | 'social' | 'event';
+
+export interface ActionDefinition {
+  type: ActionType;
+  category: ActionCategory;
+  apCost: number;
+  name: string;
+  description: string;
+  requirements?: ActionRequirement[];
+  rewards: ActionReward;
+  risks?: ActionRisk[];
+}
+
+export interface ActionRequirement {
+  type: 'level' | 'skill' | 'resource' | 'relationship' | 'location' | 'faction';
+  value: number | string;
+  description: string;
+}
+
+export interface ActionReward {
+  resources?: Partial<PlayerResources>;
+  skillExp?: Record<string, number>;
+  relationship?: { npcId: string; value: number };
+  attributes?: Partial<PlayerAttributes>;
+  reputation?: Partial<FactionReputation>;
+  narrative: string;
+  possibleEvent?: string;
+}
+
+export interface ActionRisk {
+  type: 'injury' | 'loss' | 'reputation' | 'event';
+  probability: number;
+  consequence: string;
+}
+
+// P0 基础行动定义
+export const BASIC_ACTIONS: ActionDefinition[] = [
+  {
+    type: 'practice_skill',
+    category: 'growth',
+    apCost: 1,
+    name: '练习技能',
+    description: '投入时间提升某项技能',
+    rewards: {
+      skillExp: { random: 3 },
+      narrative: '你专注于训练，技艺有所精进。',
+    },
+  },
+  {
+    type: 'hunt_monsters',
+    category: 'resource',
+    apCost: 3,
+    name: '打怪狩猎',
+    description: '外出狩猎怪物获取金币和经验',
+    requirements: [
+      { type: 'location', value: 'wild', description: '需要在野外区域' },
+    ],
+    rewards: {
+      resources: { gold: 50 },
+      skillExp: { combat: 10 },
+      narrative: '战斗激烈，你击退了敌人并获得了战利品。',
+    },
+    risks: [
+      { type: 'injury', probability: 0.1, consequence: '战斗中受了轻伤' },
+    ],
+  },
+  {
+    type: 'visit_npc',
+    category: 'social',
+    apCost: 1,
+    name: '拜访NPC',
+    description: '拜访某个NPC建立关系',
+    rewards: {
+      relationship: { npcId: 'target', value: 8 },
+      narrative: '你拜访了对方，交流甚欢。',
+    },
+  },
+  {
+    type: 'handle_event',
+    category: 'event',
+    apCost: 2,
+    name: '处理事件',
+    description: '处理一个待决事件',
+    rewards: {
+      narrative: '事件已处理，后续影响将逐渐显现。',
+    },
+  },
+  {
+    type: 'work_job',
+    category: 'resource',
+    apCost: 2,
+    name: '工作赚钱',
+    description: '从事日常工作赚取金币',
+    rewards: {
+      resources: { gold: 40 },
+      narrative: '辛苦工作一天，收获了报酬。',
+    },
+  },
+];
+
+// ============================================
+// Action Execution Result
+// ============================================
+
+export interface ActionResult {
+  success: boolean;
+  action: ActionType;
+  apConsumed: number;
+  apRemaining: number;
+  rewards: ActionReward;
+  narrativeFeedback: string;
+  triggeredEvents?: string[];
+  timestamp: string;
 }

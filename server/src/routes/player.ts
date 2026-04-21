@@ -3,8 +3,9 @@
 import { Router, type Request, type Response } from 'express';
 import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
-import { getRelationshipLevel } from '../types/game.js';
+import { getRelationshipLevel, clampAttribute, clampReputation, type FactionReputation } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
+import type { EventConsequence } from '../types/eventTemplates.js';
 
 const router = Router();
 
@@ -104,8 +105,8 @@ router.get('/events', async (req: Request, res: Response): Promise<void> => {
   }
 
   const statusParam = (req.query['status'] as string) ?? 'pending';
-  const limit = Math.min(parseInt(req.query['limit'] as string) ?? 10, 50);
-  const offset = parseInt(req.query['offset'] as string) ?? 0;
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 10, 50);
+  const offset = parseInt(req.query['offset'] as string) || 0;
 
   try {
     const whereClause = statusParam === 'all' ? { playerId } : { playerId, status: 'pending' };
@@ -234,26 +235,164 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Parse consequences from choice
+    const consequences = (choice['consequences'] as EventConsequence[]) ?? [];
+
+    // Calculate consequence results
+    const attributeChanges: Record<string, number> = {};
+    const resourceChanges: Record<string, number> = {};
+    const reputationChanges: Partial<FactionReputation> = {};
+    const tagsAdded: string[] = [];
+    const skillExpGained: Record<string, number> = {};
+    const narrativeParts: string[] = [];
+    const triggeredEvents: string[] = [];
+
+    // Get current player state
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', '玩家不存在', requestId));
+      return;
+    }
+
+    const currentAttributes = safeJsonParse<Record<string, number>>(player.attributes, {});
+    const currentResources = safeJsonParse<Record<string, number>>(player.resources, {});
+    const currentReputation = safeJsonParse<Record<string, number>>(player.reputation, {});
+    const currentTags = safeJsonParse<string[]>(player.tags, []);
+    const currentSkills = safeJsonParse<Record<string, unknown>>(player.skills, {});
+
+    // Apply each consequence
+    for (const con of consequences) {
+      narrativeParts.push(con.description);
+
+      switch (con.type) {
+        case 'resource': {
+          if (con.target === 'player') {
+            const current = currentResources['gold'] ?? 100;
+            resourceChanges['gold'] = current + con.value;
+          }
+          break;
+        }
+        case 'reputation': {
+          if (con.target && ['canglong', 'shuanglang', 'jinque', 'border'].includes(con.target)) {
+            const current = currentReputation[con.target] ?? 0;
+            reputationChanges[con.target as keyof FactionReputation] = clampReputation(current + con.value);
+          }
+          break;
+        }
+        case 'relationship': {
+          // Relationships are tracked per-NPC; store in a separate structure
+          // For now, record the NPC ID and change value for later use
+          break;
+        }
+        case 'status': {
+          // Status values map to player tags
+          const statusTags: Record<number, string> = {
+            1: '帝国见习军官',
+            2: '联邦勇士',
+            3: '商会代理人',
+            4: '自由民',
+            5: '仁慈',
+            6: '冷血',
+            7: '软弱',
+            8: '通匪',
+            9: '救命恩人',
+          };
+          if (statusTags[con.value]) {
+            tagsAdded.push(statusTags[con.value]!);
+          }
+          break;
+        }
+        case 'skill': {
+          skillExpGained['combat'] = (skillExpGained['combat'] ?? 0) + con.value;
+          break;
+        }
+        case 'event': {
+          // Mark that a follow-up event should be triggered
+          triggeredEvents.push(`event_chain_${eventId}_${choiceIndex}`);
+          break;
+        }
+      }
+    }
+
+    // Merge new values into player state
+    const newAttributes = { ...currentAttributes };
+    for (const [key, val] of Object.entries(attributeChanges)) {
+      newAttributes[key] = clampAttribute(key, val);
+    }
+
+    const newResources = { ...currentResources };
+    for (const [key, val] of Object.entries(resourceChanges)) {
+      newResources[key] = Math.max(0, val);
+    }
+
+    const newReputation = { ...currentReputation };
+    for (const [key, val] of Object.entries(reputationChanges)) {
+      newReputation[key] = val as number;
+    }
+
+    const newTags = [...new Set([...currentTags, ...tagsAdded])];
+
+    // Build skill update if any EXP gained
+    let newSkills = currentSkills;
+    if (Object.keys(skillExpGained).length > 0) {
+      newSkills = { ...currentSkills };
+      for (const [skillName, exp] of Object.entries(skillExpGained)) {
+        // Simple skill EXP tracking at top level
+        (newSkills as Record<string, unknown>)[`${skillName}_exp`] = ((newSkills as Record<string, unknown>)[`${skillName}_exp`] as number ?? 0) + exp;
+      }
+    }
+
+    // Update player record
+    await prisma.player.update({
+      where: { id: playerId },
+      data: {
+        attributes: safeJsonStringify(newAttributes),
+        resources: safeJsonStringify(newResources),
+        reputation: safeJsonStringify(newReputation),
+        tags: safeJsonStringify(newTags),
+        skills: safeJsonStringify(newSkills),
+      },
+    });
+
+    // Create decision record with full consequences
     const decision = await prisma.decision.create({
       data: {
         playerId,
         eventId,
         choiceIndex,
         choiceLabel: choice['label'] as string,
-        consequences: safeJsonStringify({ narrativeFeedback: '决策已执行' }),
-        context: safeJsonStringify({ playerLevel: 1, worldDay: 1 }),
+        consequences: safeJsonStringify(consequences),
+        context: safeJsonStringify({
+          playerLevel: player.level,
+          attributeChanges,
+          resourceChanges,
+          reputationChanges,
+          tagsAdded,
+          skillExpGained,
+        }),
         gameDay: 1,
       },
     });
 
     await prisma.event.update({ where: { id: eventId }, data: { status: 'completed' } });
 
+    const narrativeFeedback = (choice['narrativeOutcome'] as string) ?? narrativeParts.join(' ') ?? '决策已执行';
+
     res.json(createSuccessResponse({
       success: true,
       decision: { id: decision.id.toString(), eventId, choiceIndex, madeAt: decision.madeAt.toISOString() },
-      immediateConsequences: { changes: {}, acquired: {}, unlocked: {} },
-      narrativeFeedback: '决策已执行',
-      triggeredEvents: [],
+      immediateConsequences: {
+        changes: {
+          attributes: attributeChanges,
+          resources: resourceChanges,
+          reputation: reputationChanges,
+          tags: tagsAdded,
+        },
+        acquired: { skillExp: skillExpGained },
+        unlocked: {},
+      },
+      narrativeFeedback,
+      triggeredEvents,
     }, requestId));
   } catch (err) {
     console.error('[Decision Error]', err);
@@ -271,8 +410,8 @@ router.get('/history', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const limit = Math.min(parseInt(req.query['limit'] as string) ?? 20, 100);
-  const offset = parseInt(req.query['offset'] as string) ?? 0;
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 20, 100);
+  const offset = parseInt(req.query['offset'] as string) || 0;
 
   try {
     const total = await prisma.decision.count({ where: { playerId } });

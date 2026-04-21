@@ -20,7 +20,7 @@ const fontSizeOptions: { value: FontSizeOption; label: string }[] = [
 const themeOptions: { value: ThemeOption; label: string }[] = [
   { value: 'light', label: '日间' },
   { value: 'dark', label: '夜间' },
-  { value: 'sepia', label: '复古' },
+  { value: 'sepia', label: '羊皮' },
 ]
 
 export default function ReadingToolbar({
@@ -30,20 +30,20 @@ export default function ReadingToolbar({
   onBookmarkToggle,
 }: ReadingToolbarProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 stone-panel z-50">
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* 字号选择 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">字号:</span>
+          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">字号:</span>
           <div className="flex gap-1">
             {fontSizeOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => onSettingsChange({ fontSize: option.value })}
-                className={`px-2 py-1 text-sm rounded ${
+                className={`px-2 py-1 text-sm ${
                   settings.fontSize === option.value
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-[var(--pixel-exp)] text-[var(--pixel-text-light)] pixel-border'
+                    : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
                 }`}
               >
                 {option.label}
@@ -54,16 +54,16 @@ export default function ReadingToolbar({
 
         {/* 主题选择 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">主题:</span>
+          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">主题:</span>
           <div className="flex gap-1">
             {themeOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => onSettingsChange({ theme: option.value })}
-                className={`px-2 py-1 text-sm rounded ${
+                className={`px-2 py-1 text-sm ${
                   settings.theme === option.value
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-[var(--pixel-exp)] text-[var(--pixel-text-light)] pixel-border'
+                    : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
                 }`}
               >
                 {option.label}
@@ -75,10 +75,10 @@ export default function ReadingToolbar({
         {/* 书签 */}
         <button
           onClick={onBookmarkToggle}
-          className={`px-3 py-1 rounded ${
+          className={`px-3 py-1 text-sm ${
             isBookmarked
-              ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-[var(--pixel-warning)] text-[var(--pixel-text-dark)] pixel-shadow'
+              : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
           }`}
         >
           {isBookmarked ? '📖 已收藏' : '📑 收藏'}

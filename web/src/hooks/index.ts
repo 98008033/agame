@@ -1,1 +1,1 @@
-export { QueryProvider, queryClient } from './useQuery'
+export { useWebSocket } from './useWebSocket'

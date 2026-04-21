@@ -1,6 +1,7 @@
 export { useGameStore } from './gameStore'
-export { useUIStore } from './uiStore'
 export { useNovelStore } from './novelStore'
 export { useEventStore } from './eventStore'
 export { usePlayerStore, originConfigs } from './playerStore'
 export { useWorldStore } from './worldStore'
+export { useWebSocketStore, createNotification, generateNotificationId } from './websocketStore'
+export type { WSMessage, WSMessageType, WSNotification, ConnectionStatus } from './websocketStore'

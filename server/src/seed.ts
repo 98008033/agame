@@ -373,6 +373,47 @@ async function main(): Promise<void> {
   console.log('✅ Daily news created for Day 1');
 
   // ============================================
+  // Set up NPC relationships
+  // ============================================
+  console.log('Setting up NPC relationships...');
+
+  const npcRelationships: Record<string, Record<string, number>> = {
+    npc_tianshu: { npc_cl_general: 70, npc_hanlang: -30, npc_laogen: -10 },
+    npc_hanlang: { npc_sl_hunter: 60, npc_tianshu: -30, npc_sl_sage: 50 },
+    npc_qiushi: { npc_jq_banker: 55, npc_jq_alchemist: 40, npc_hanlang: 30 },
+    npc_laogen: { npc_bd_hunter: 45, npc_bd_innkeeper: 30, npc_tianshu: -10 },
+    npc_cl_general: { npc_tianshu: 80, npc_bd_hunter: -20 },
+    npc_sl_hunter: { npc_hanlang: 60, npc_sl_sage: 40, npc_free_traveler: 25 },
+    npc_sl_sage: { npc_hanlang: 50, npc_sl_hunter: 35 },
+    npc_jq_banker: { npc_qiushi: 45, npc_jq_alchemist: 35 },
+    npc_jq_alchemist: { npc_qiushi: 40, npc_free_bard: 50 },
+    npc_bd_hunter: { npc_laogen: 45, npc_bd_innkeeper: 25, npc_cl_general: -20 },
+    npc_bd_innkeeper: { npc_laogen: 30, npc_free_traveler: 35 },
+    npc_free_traveler: { npc_bd_innkeeper: 20, npc_sl_hunter: 25 },
+    npc_free_bard: { npc_jq_alchemist: 50, npc_free_traveler: 30 },
+  };
+
+  for (const [npcId, relations] of Object.entries(npcRelationships)) {
+    const npc = await prisma.nPC.findUnique({ where: { id: npcId } });
+    if (npc) {
+      const currentRels = JSON.parse(npc.relationships as string) as Record<string, unknown>;
+      await prisma.nPC.update({
+        where: { id: npcId },
+        data: {
+          relationships: JSON.stringify({
+            ...currentRels,
+            players: {},
+            npcs: relations,
+            interactions: [],
+          }),
+        },
+      });
+    }
+  }
+
+  console.log('✅ NPC relationships set up');
+
+  // ============================================
   // 创建更多NPC（丰富游戏体验）
   // ============================================
   console.log('Creating additional NPCs...');
@@ -661,6 +702,41 @@ async function main(): Promise<void> {
   }
 
   console.log('✅ Game configurations created');
+
+  // ============================================
+  // Create initial test events (for players to interact with)
+  // ============================================
+  console.log('Creating initial test events...');
+
+  const allPlayers = await prisma.player.findMany({ take: 50 });
+  for (const player of allPlayers) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 3);
+
+    // Faction invite event
+    await prisma.event.create({
+      data: {
+        id: `seed_event_invite_${player.id.slice(0, 8)}`,
+        playerId: player.id,
+        type: 'faction_invite',
+        category: '效忠选择',
+        title: '边境使者的邀请',
+        description: '三位来自不同阵营的使者同时出现在暮光村，各自邀请你加入他们的阵营。',
+        narrativeText: '暮光村的村口来了三位使者，各自代表着不同的势力...\n\n苍龙帝国的使者手持文书，霜狼联邦的使者身披狼皮斗篷，金雀花王国的使者一袭锦缎长袍。三人都等着你的回答。',
+        choices: JSON.stringify([
+          { index: 0, label: '接受苍龙帝国', description: '加入苍龙帝国', consequences: [{ type: 'reputation', target: 'canglong', value: 30 }, { type: 'reputation', target: 'shuanglang', value: -10 }, { type: 'resource', target: 'player', value: 50 }], narrativeOutcome: '你接过苍龙使者的文书，正式成为帝国的一员。' },
+          { index: 1, label: '接受霜狼联邦', description: '加入霜狼联邦', consequences: [{ type: 'reputation', target: 'shuanglang', value: 30 }, { type: 'reputation', target: 'canglong', value: -10 }], narrativeOutcome: '你选择与霜狼使者同行。' },
+          { index: 2, label: '接受金雀花王国', description: '加入金雀花', consequences: [{ type: 'reputation', target: 'jinque', value: 30 }, { type: 'reputation', target: 'canglong', value: -10 }, { type: 'resource', target: 'player', value: 100 }], narrativeOutcome: '金雀花使者微笑着点头："明智的选择。"' },
+          { index: 3, label: '保持独立', description: '婉拒三方', consequences: [{ type: 'reputation', target: 'border', value: 20 }], narrativeOutcome: '你婉拒了三位使者。' },
+        ]),
+        scope: 'local',
+        status: 'pending',
+        expiresAt,
+      },
+    });
+  }
+
+  console.log(`✅ Initial test events created for ${allPlayers.length} players`);
 
   console.log('🌱 Database seeding completed successfully!');
 }
