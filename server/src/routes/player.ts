@@ -3,7 +3,7 @@
 import { Router, type Request, type Response } from 'express';
 import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
-import { getRelationshipLevel, clampAttribute, clampReputation, type FactionReputation } from '../types/game.js';
+import { getRelationshipLevel, clampAttribute, clampReputation, type NationReputation } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import type { EventConsequence } from '../types/eventTemplates.js';
 import {
@@ -256,7 +256,7 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
     // Calculate consequence results
     const attributeChanges: Record<string, number> = {};
     const resourceChanges: Record<string, number> = {};
-    const reputationChanges: Partial<FactionReputation> = {};
+    const reputationChanges: Partial<NationReputation> = {};
     const tagsAdded: string[] = [];
     const skillExpGained: Record<string, number> = {};
     const narrativeParts: string[] = [];
@@ -293,7 +293,7 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
         case 'reputation': {
           if (con.target && ['canglong', 'shuanglang', 'jinque', 'border'].includes(con.target)) {
             const current = currentReputation[con.target] ?? 0;
-            reputationChanges[con.target as keyof FactionReputation] = clampReputation(current + con.value);
+            reputationChanges[con.target as keyof NationReputation] = clampReputation(current + con.value);
           }
           break;
         }
@@ -674,8 +674,6 @@ router.get('/skills/available', async (req: Request, res: Response): Promise<voi
   }
 });
 
-export default router;
-
 // ============================================
 // Impact Tracking Endpoints
 // ============================================
@@ -822,3 +820,5 @@ router.post('/legacy/create', async (req: Request, res: Response): Promise<void>
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '创建遗产记录失败', requestId, undefined, true));
   }
 });
+
+export default router;

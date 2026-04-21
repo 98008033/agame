@@ -3,7 +3,7 @@
 
 // Event trigger condition types
 export interface EventTriggerCondition {
-  type: 'level' | 'resource' | 'relationship' | 'faction' | 'skill' | 'time' | 'state' | 'location';
+  type: 'level' | 'resource' | 'relationship' | 'nation' | 'skill' | 'time' | 'state' | 'location';
   value: number | string;
   description: string;
   required?: boolean;
@@ -32,7 +32,7 @@ export interface EventChoice {
 // Event template
 export interface EventTemplate {
   id: string;
-  type: 'faction_invite' | 'resource_dilemma' | 'personal_conflict' | 'crisis_response' | 'daily_life';
+  type: 'nation_invite' | 'resource_dilemma' | 'personal_conflict' | 'crisis_response' | 'daily_life';
   category: '效忠选择' | '资源抉择' | '人际冲突' | '危机应对';
   title: string;
   description: string;
@@ -51,8 +51,8 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
   // 效忠选择类
   // ============================================
   {
-    id: 'event_001_faction_invite',
-    type: 'faction_invite',
+    id: 'event_001_nation_invite',
+    type: 'nation_invite',
     category: '效忠选择',
     title: '边境使者的邀请',
     description: '三位来自不同阵营的使者同时出现在暮光村，各自邀请你加入他们的阵营。',
@@ -67,7 +67,7 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
 三人都等着你的回答...`,
     triggerConditions: [
       { type: 'level', value: 5, description: '等级≥5' },
-      { type: 'faction', value: 'none', description: '无效忠阵营' },
+      { type: 'nation', value: 'none', description: '无效忠阵营' },
     ],
     choices: [
       {
@@ -408,7 +408,7 @@ export function checkTriggerConditions(
       case 'resource':
         if (playerState.gold < (cond.value as number)) return false;
         break;
-      case 'faction':
+      case 'nation':
         if (cond.value === 'none' && playerState.faction) return false;
         if (typeof cond.value === 'string' && cond.value !== 'none' && playerState.faction !== cond.value) return false;
         break;

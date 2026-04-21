@@ -56,6 +56,9 @@ model Player {
   // 阵营信息
   faction             String?
   factionLevel        String      @default("neutral")
+  internalFaction     String?     // InternalFaction ID
+  internalFactionLevel String     @default("neutral")
+  internalReputation  String      @default("{}") // InternalFactionReputation JSON
   titles              String      @default("") // JSON数组字符串
 
   // 等级与经验
@@ -86,6 +89,7 @@ model Player {
 
   @@index([userId])
   @@index([faction])
+  @@index([internalFaction])
   @@index([level])
   @@index([lastAPResetAt])
   @@map("players")

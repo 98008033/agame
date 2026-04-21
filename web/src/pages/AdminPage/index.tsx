@@ -1,15 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { adminApi } from '../../services'
-
-// 管理后台认证token
-const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || 'admin_secret_key_mvp'
-
-// 组件外提前设置admin token
-const originalToken = typeof window !== 'undefined' ? window.localStorage.getItem('auth_token') : null
-if (typeof window !== 'undefined') {
-  window.localStorage.setItem('auth_token', ADMIN_SECRET)
-}
 
 interface SystemStatus {
   database: {
@@ -58,20 +50,21 @@ interface UsersResponse {
 }
 
 function ErrorDisplay({ message }: { message: string }) {
+  const { t } = useTranslation()
   return (
-    <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 text-red-200">
-      <p className="font-bold">加载失败</p>
-      <p className="text-sm mt-1">{message}</p>
+    <div className="error-state">
+      <p className="error-state-title">{t('admin.loadFailed')}</p>
+      <p className="text-sm">{message}</p>
     </div>
   )
 }
 
 export default function AdminPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'status' | 'llm' | 'users' | 'recharge' | 'logs'>('status')
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // LLM配置表单状态
   const [llmForm, setLlmForm] = useState({
     provider: 'zhipu',
     apiKey: '',
@@ -79,25 +72,15 @@ export default function AdminPage() {
     defaultModel: '',
   })
 
-  useEffect(() => {
-    return () => {
-      if (originalToken) {
-        window.localStorage.setItem('auth_token', originalToken)
-      } else {
-        window.localStorage.removeItem('auth_token')
-      }
-    }
-  }, [])
-
   const { data: statusData, isLoading: statusLoading, error: statusError } = useQuery({
     queryKey: ['admin-status'],
     queryFn: async () => {
       try {
         const res = await adminApi.getSystemStatus()
-        if (!res.data.success) throw new Error(res.data.error?.message || '获取系统状态失败')
+        if (!res.data.success) throw new Error(res.data.error?.message || t('admin.fetchStatusFailed'))
         return res.data.data as SystemStatus
       } catch (err) {
-        setAuthError(err instanceof Error ? err.message : '认证失败')
+        setAuthError(err instanceof Error ? err.message : t('admin.accessDenied'))
         throw err
       }
     },
@@ -108,7 +91,7 @@ export default function AdminPage() {
     queryKey: ['admin-llm'],
     queryFn: async () => {
       const res = await adminApi.getLLMConfig()
-      if (!res.data.success) throw new Error(res.data.error?.message || '获取LLM配置失败')
+      if (!res.data.success) throw new Error(res.data.error?.message || t('admin.fetchLlmConfigFailed'))
       return res.data.data as LLMConfigResponse
     },
     retry: false,
@@ -118,7 +101,7 @@ export default function AdminPage() {
     queryKey: ['admin-users'],
     queryFn: async () => {
       const res = await adminApi.getUsers(1, 20)
-      if (!res.data.success) throw new Error(res.data.error?.message || '获取用户列表失败')
+      if (!res.data.success) throw new Error(res.data.error?.message || t('admin.fetchUsersFailed'))
       return res.data.data as UsersResponse
     },
     retry: false,
@@ -128,7 +111,7 @@ export default function AdminPage() {
     queryKey: ['admin-recharge'],
     queryFn: async () => {
       const res = await adminApi.getRechargeLogs(1, 20)
-      if (!res.data.success) throw new Error(res.data.error?.message || '获取充值记录失败')
+      if (!res.data.success) throw new Error(res.data.error?.message || t('admin.fetchRechargeFailed'))
       return res.data.data as {
         logs: Array<{ id: string; playerId: string; playerName: string; amount: number; reason: string; executedAt: string }>
         pagination: { total: number }
@@ -141,7 +124,7 @@ export default function AdminPage() {
     queryKey: ['admin-agent-logs'],
     queryFn: async () => {
       const res = await adminApi.getAgentLogs(1, 20)
-      if (!res.data.success) throw new Error(res.data.error?.message || '获取Agent日志失败')
+      if (!res.data.success) throw new Error(res.data.error?.message || t('admin.fetchAgentLogsFailed'))
       return res.data.data as {
         logs: Array<{ id: string; agentId: string; taskType: string; status: string; createdAt: string }>
         pagination: { total: number }
@@ -161,7 +144,6 @@ export default function AdminPage() {
     },
   })
 
-  // 用户删除
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await adminApi.deleteUser(userId)
@@ -172,7 +154,6 @@ export default function AdminPage() {
     },
   })
 
-  // 禁止/解除禁止用户
   const banUserMutation = useMutation({
     mutationFn: async ({ userId, ban }: { userId: string; ban: boolean }) => {
       if (ban) {
@@ -187,10 +168,6 @@ export default function AdminPage() {
     },
   })
 
-  // 删除确认弹窗状态
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
-
-  // LLM配置更新
   const llmUpdateMutation = useMutation({
     mutationFn: async (data: { provider: string; apiKey?: string; baseURL?: string; defaultModel?: string; defaultProvider?: string }) => {
       const res = await adminApi.updateLLMConfig(data)
@@ -201,7 +178,6 @@ export default function AdminPage() {
     },
   })
 
-  // LLM连接测试
   const llmTestMutation = useMutation({
     mutationFn: async (data: { apiKey: string; baseURL?: string; model?: string }) => {
       const res = await adminApi.testLLM(data)
@@ -214,13 +190,12 @@ export default function AdminPage() {
   }
 
   const stageNames: Record<string, string> = {
-    era_power_struggle: '权力博弈期',
-    era_war_prep: '战争酝酿期',
-    era_chaos: '动荡期',
-    era_resolution: '决局期',
+    era_power_struggle: t('admin.historyStages.power_struggle'),
+    era_war_prep: t('admin.historyStages.war_prep'),
+    era_chaos: t('admin.historyStages.chaos'),
+    era_resolution: t('admin.historyStages.resolution'),
   }
 
-  // 处理LLM配置保存
   const handleLLMSave = () => {
     llmUpdateMutation.mutate({
       provider: llmForm.provider,
@@ -231,7 +206,6 @@ export default function AdminPage() {
     })
   }
 
-  // 处理LLM连接测试
   const handleLLMTest = () => {
     if (!llmForm.apiKey) return
     llmTestMutation.mutate({
@@ -241,28 +215,42 @@ export default function AdminPage() {
     })
   }
 
-  // 处理用户删除
   const handleUserDelete = useCallback((user: User) => {
-    if (window.confirm(`确定要删除用户 "${user.name}" (${user.id}) 吗？此操作不可撤销。`)) {
+    if (window.confirm(`${t('admin.confirmDeleteUser')} "${user.name}" (${user.id})? ${t('admin.confirmDeleteDetail')}`)) {
       deleteUserMutation.mutate(user.id)
-      setDeleteTarget(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deleteUserMutation])
 
-  // 处理用户封禁/解封
   const handleUserBan = useCallback((user: User) => {
     const ban = !user.banned
     banUserMutation.mutate({ userId: user.id, ban })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [banUserMutation])
+
+  const tabs = [
+    { id: 'status' as const, label: t('admin.systemStatus') },
+    { id: 'llm' as const, label: t('admin.llmConfig') },
+    { id: 'users' as const, label: t('admin.userManagement') },
+    { id: 'recharge' as const, label: t('admin.rechargeManagement') },
+    { id: 'logs' as const, label: t('admin.agentLogs') },
+  ]
+
+  const cardStyle = { background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 'var(--radius-lg)' }
+  const subCardStyle = { background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)' }
+  const mutedText = { color: 'var(--text-secondary)' }
+  const labelText = { fontSize: '13px', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }
+  const inputStyle = { ...subCardStyle, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.1)', width: '100%', color: 'var(--text-primary)', borderRadius: 'var(--radius-md)', outline: 'none' }
+  const statCardStyle = { ...subCardStyle, padding: '12px' }
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="bg-slate-800 rounded-lg p-8 max-w-md text-center">
-          <p className="text-red-400 font-bold mb-2">管理后台访问被拒绝</p>
-          <p className="text-slate-400 mb-4">{authError}</p>
-          <button onClick={handleLeave} className="px-4 py-2 bg-slate-700 text-slate-300 rounded hover:bg-slate-600">
-            返回游戏
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div className="rounded-lg p-8 max-w-md text-center" style={cardStyle}>
+          <p className="font-bold mb-2" style={{ color: 'var(--accent-red)' }}>{t('admin.accessDenied')}</p>
+          <p className="mb-4" style={mutedText}>{authError}</p>
+          <button onClick={handleLeave} className="px-4 py-2 rounded btn-modern">
+            {t('admin.backToGame')}
           </button>
         </div>
       </div>
@@ -270,112 +258,90 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <header className="bg-slate-800 border-b border-slate-700 p-4">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+      {/* Header */}
+      <header className="header-modern">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-amber-400">游戏管理后台</h1>
-          <button onClick={handleLeave} className="px-4 py-2 bg-slate-700 text-slate-300 rounded hover:bg-slate-600">
-            返回游戏
+          <h1 className="text-xl font-bold font-display" style={{ color: 'var(--accent-gold)' }}>{t('admin.title')}</h1>
+          <button onClick={handleLeave} className="px-4 py-2 btn-modern text-sm">
+            {t('admin.backToGame')}
           </button>
         </div>
       </header>
 
-      <nav className="bg-slate-800/50 border-b border-slate-700">
-        <div className="max-w-4xl mx-auto flex gap-2 p-2">
-          {['系统状态', 'LLM配置', '用户管理', '充值管理', 'Agent日志'].map((name, idx) => {
-            const ids = ['status', 'llm', 'users', 'recharge', 'logs'] as const
-            return (
-              <button
-                key={name}
-                onClick={() => setActiveTab(ids[idx])}
-                className={`px-4 py-2 rounded ${
-                  activeTab === ids[idx]
-                    ? 'bg-amber-500 text-slate-900'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                {name}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
+      {/* Tab Nav */}
+      <div className="tab-nav" style={{ maxWidth: '896px', margin: '0 auto' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-6 space-y-4">
+        {/* ========== 系统状态 ========== */}
         {activeTab === 'status' && (
-          <div className="space-y-4">
-            {statusLoading ? (
-              <div className="text-slate-400">加载中...</div>
-            ) : statusError ? (
-              <ErrorDisplay message={statusError instanceof Error ? statusError.message : '获取系统状态失败'} />
-            ) : statusData && (
+          <>
+            {statusLoading && <div className="loading-state">{t('common.loading')}</div>}
+            {statusError && <ErrorDisplay message={statusError instanceof Error ? statusError.message : t('admin.fetchStatusFailed')} />}
+            {statusData && (
               <>
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">数据库状态</h3>
-                  <div className="grid grid-cols-4 gap-4 text-sm">
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">玩家总数</span>
-                      <span className="text-amber-400 font-bold ml-2">{statusData.database.players}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">游客</span>
-                      <span className="text-blue-400 font-bold ml-2">{statusData.database.guests}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">注册用户</span>
-                      <span className="text-green-400 font-bold ml-2">{statusData.database.registered}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">事件总数</span>
-                      <span className="text-purple-400 font-bold ml-2">{statusData.database.events}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">待处理事件</span>
-                      <span className="text-red-400 font-bold ml-2">{statusData.database.pendingEvents}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">世界状态</span>
-                      <span className="text-cyan-400 font-bold ml-2">{statusData.database.worldStates}</span>
-                    </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">Agent任务</span>
-                      <span className="text-orange-400 font-bold ml-2">{statusData.database.agentTasks}</span>
-                    </div>
+                <div className="rounded-lg p-4" style={cardStyle}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.dbStatus')}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    {[
+                      { label: t('admin.totalPlayers'), value: statusData.database.players, color: 'var(--accent-gold)' },
+                      { label: t('admin.guest'), value: statusData.database.guests, color: 'var(--accent-blue)' },
+                      { label: t('admin.registered'), value: statusData.database.registered, color: 'var(--accent-green)' },
+                      { label: t('admin.totalEvents'), value: statusData.database.events, color: 'var(--accent-purple)' },
+                      { label: t('admin.pendingEvents'), value: statusData.database.pendingEvents, color: 'var(--accent-red)' },
+                      { label: t('admin.worldState'), value: statusData.database.worldStates, color: 'var(--status-info)' },
+                      { label: t('admin.agentTask'), value: statusData.database.agentTasks, color: 'var(--accent-gold)' },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded" style={statCardStyle}>
+                        <span style={mutedText}>{item.label}</span>
+                        <span className="font-bold ml-2" style={{ color: item.color }}>{item.value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">世界状态</h3>
+                <div className="rounded-lg p-4" style={cardStyle}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.worldState')}</h3>
                   {statusData.world ? (
-                    <div className="flex gap-4 text-sm">
-                      <div className="bg-slate-700 p-3 rounded">
-                        <span className="text-slate-400">当前天数</span>
-                        <span className="text-amber-400 font-bold ml-2">Day {statusData.world.currentDay}</span>
+                    <div className="flex gap-3 text-sm">
+                      <div className="rounded" style={statCardStyle}>
+                        <span style={mutedText}>{t('admin.currentDay')}</span>
+                        <span className="font-bold ml-2" style={{ color: 'var(--accent-gold)' }}>Day {statusData.world.currentDay}</span>
                       </div>
-                      <div className="bg-slate-700 p-3 rounded">
-                        <span className="text-slate-400">历史阶段</span>
-                        <span className="text-purple-400 font-bold ml-2">{stageNames[statusData.world.historyStage] || statusData.world.historyStage}</span>
+                      <div className="rounded" style={statCardStyle}>
+                        <span style={mutedText}>{t('admin.historyStage')}</span>
+                        <span className="font-bold ml-2" style={{ color: 'var(--accent-purple)' }}>{stageNames[statusData.world.historyStage] || statusData.world.historyStage}</span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-slate-400">暂无世界状态数据</p>
+                    <p style={mutedText}>{t('admin.noWorldStateData')}</p>
                   )}
                 </div>
 
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">服务器状态</h3>
-                  <div className="flex gap-4 text-sm">
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">Node版本</span>
-                      <span className="text-green-400 font-bold ml-2">{statusData.server.nodeVersion}</span>
+                <div className="rounded-lg p-4" style={cardStyle}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.serverStatus')}</h3>
+                  <div className="flex gap-3 text-sm flex-wrap">
+                    <div className="rounded" style={statCardStyle}>
+                      <span style={mutedText}>{t('admin.nodeVersion')}</span>
+                      <span className="font-bold ml-2" style={{ color: 'var(--accent-green)' }}>{statusData.server.nodeVersion}</span>
                     </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">运行时间</span>
-                      <span className="text-blue-400 font-bold ml-2">{Math.floor(statusData.server.uptime)}s</span>
+                    <div className="rounded" style={statCardStyle}>
+                      <span style={mutedText}>{t('admin.uptime')}</span>
+                      <span className="font-bold ml-2" style={{ color: 'var(--accent-blue)' }}>{Math.floor(statusData.server.uptime / 60)}min</span>
                     </div>
-                    <div className="bg-slate-700 p-3 rounded">
-                      <span className="text-slate-400">内存使用</span>
-                      <span className="text-orange-400 font-bold ml-2">
+                    <div className="rounded" style={statCardStyle}>
+                      <span style={mutedText}>{t('admin.memoryUsage')}</span>
+                      <span className="font-bold ml-2" style={{ color: 'var(--accent-gold)' }}>
                         {Math.round(statusData.server.memoryUsage.heapUsed / 1024 / 1024)}MB
                       </span>
                     </div>
@@ -383,40 +349,39 @@ export default function AdminPage() {
                 </div>
               </>
             )}
-          </div>
+          </>
         )}
 
+        {/* ========== LLM配置 ========== */}
         {activeTab === 'llm' && (
-          <div className="space-y-4">
-            {llmLoading ? (
-              <div className="text-slate-400">加载中...</div>
-            ) : llmError ? (
-              <ErrorDisplay message={llmError instanceof Error ? llmError.message : '获取LLM配置失败'} />
-            ) : llmData && (
+          <>
+            {llmLoading && <div className="loading-state">{t('common.loading')}</div>}
+            {llmError && <ErrorDisplay message={llmError instanceof Error ? llmError.message : t('admin.fetchLlmConfigFailed')} />}
+            {llmData && (
               <>
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">当前配置</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="bg-slate-700 p-3 rounded flex justify-between">
-                      <span className="text-slate-400">默认Provider</span>
-                      <span className="text-amber-400 font-bold">{llmData.defaultProvider}</span>
+                <div className="rounded-lg p-4" style={cardStyle}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.currentConfig')}</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between rounded p-3" style={subCardStyle}>
+                      <span style={mutedText}>{t('admin.defaultProvider')}</span>
+                      <span className="font-bold" style={{ color: 'var(--accent-gold)' }}>{llmData.defaultProvider}</span>
                     </div>
-                    <div className="bg-slate-700 p-3 rounded flex justify-between">
-                      <span className="text-slate-400">支持的Provider</span>
-                      <span className="text-green-400 font-bold">{llmData.providers.join(', ')}</span>
+                    <div className="flex justify-between rounded p-3" style={subCardStyle}>
+                      <span style={mutedText}>{t('admin.supportedProviders')}</span>
+                      <span className="font-bold" style={{ color: 'var(--accent-green)' }}>{llmData.providers.join(', ')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-800 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">配置更新</h3>
+                <div className="rounded-lg p-4" style={cardStyle}>
+                  <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.configUpdate')}</h3>
                   <form onSubmit={(e) => { e.preventDefault(); handleLLMSave(); }} className="space-y-3">
                     <div>
-                      <label className="text-slate-400 text-sm">Provider</label>
+                      <label style={labelText}>Provider</label>
                       <select
                         value={llmForm.provider}
                         onChange={(e) => setLlmForm({ ...llmForm, provider: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                        style={inputStyle}
                       >
                         {llmData.providers.map((p) => (
                           <option key={p} value={p}>{p}</option>
@@ -424,125 +389,120 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-slate-400 text-sm">API Key</label>
+                      <label style={labelText}>API Key</label>
                       <input
                         type="password"
                         value={llmForm.apiKey}
                         onChange={(e) => setLlmForm({ ...llmForm, apiKey: e.target.value })}
-                        placeholder="输入API密钥"
-                        className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                        placeholder={t('admin.apiKeyPlaceholder')}
+                        style={inputStyle}
                       />
                     </div>
                     <div>
-                      <label className="text-slate-400 text-sm">Base URL（可选）</label>
+                      <label style={labelText}>Base URL ({t('common.optional')})</label>
                       <input
                         value={llmForm.baseURL}
                         onChange={(e) => setLlmForm({ ...llmForm, baseURL: e.target.value })}
                         placeholder="https://api.example.com/v1"
-                        className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                        style={inputStyle}
                       />
                     </div>
                     <div>
-                      <label className="text-slate-400 text-sm">默认模型（可选）</label>
+                      <label style={labelText}>{t('admin.defaultModel')} ({t('common.optional')})</label>
                       <input
                         value={llmForm.defaultModel}
                         onChange={(e) => setLlmForm({ ...llmForm, defaultModel: e.target.value })}
                         placeholder="gpt-3.5-turbo"
-                        className="w-full px-3 py-2 bg-slate-700 text-white rounded"
+                        style={inputStyle}
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="submit"
                         disabled={llmUpdateMutation.isPending}
-                        className="px-4 py-2 bg-amber-500 text-slate-900 font-bold rounded hover:bg-amber-400 disabled:opacity-50"
+                        className="px-4 py-2 font-bold rounded disabled:opacity-50"
+                        style={{ background: 'var(--accent-gold)', color: 'var(--bg-primary)' }}
                       >
-                        {llmUpdateMutation.isPending ? '保存中...' : '保存配置'}
+                        {llmUpdateMutation.isPending ? t('admin.saving') : t('admin.saveConfig')}
                       </button>
                       <button
                         type="button"
                         onClick={handleLLMTest}
                         disabled={llmTestMutation.isPending || !llmForm.apiKey}
-                        className="px-4 py-2 bg-slate-600 text-slate-300 rounded hover:bg-slate-500 disabled:opacity-50"
+                        className="px-4 py-2 rounded disabled:opacity-50 btn-modern text-sm"
                       >
-                        {llmTestMutation.isPending ? '测试中...' : '测试连接'}
+                        {llmTestMutation.isPending ? t('admin.testing') : t('admin.testConnection')}
                       </button>
                     </div>
-                    {llmUpdateMutation.isSuccess && (
-                      <p className="text-green-400 text-sm">配置已保存</p>
-                    )}
-                    {llmUpdateMutation.isError && (
-                      <p className="text-red-400 text-sm">保存失败</p>
-                    )}
+                    {llmUpdateMutation.isSuccess && <p className="text-sm" style={{ color: 'var(--accent-green)' }}>{t('admin.configSaved')}</p>}
+                    {llmUpdateMutation.isError && <p className="text-sm" style={{ color: 'var(--accent-red)' }}>{t('admin.saveFailed')}</p>}
                     {llmTestMutation.data && (
-                      <p className={`text-sm ${llmTestMutation.data.data?.success ? 'text-green-400' : 'text-red-400'}`}>
-                        {llmTestMutation.data.data?.message || '测试完成'}
+                      <p className="text-sm" style={{ color: llmTestMutation.data.data?.success ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        {llmTestMutation.data.data?.message || t('admin.testComplete')}
                       </p>
                     )}
                   </form>
                 </div>
               </>
             )}
-          </div>
+          </>
         )}
 
+        {/* ========== 用户管理 ========== */}
         {activeTab === 'users' && (
-          <div className="bg-slate-800 rounded-lg p-4">
-            <h3 className="text-lg font-bold text-white mb-3">用户列表</h3>
-            {usersLoading ? (
-              <div className="text-slate-400">加载中...</div>
-            ) : usersError ? (
-              <ErrorDisplay message={usersError instanceof Error ? usersError.message : '获取用户列表失败'} />
-            ) : usersData && (
+          <div className="rounded-lg p-4" style={cardStyle}>
+            <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.userList')}</h3>
+            {usersLoading && <div className="loading-state">{t('common.loading')}</div>}
+            {usersError && <ErrorDisplay message={usersError instanceof Error ? usersError.message : t('admin.fetchUsersFailed')} />}
+            {usersData && (
               <>
-                <p className="text-slate-400 mb-3">总数: {usersData.pagination.total}</p>
+                <p className="mb-3 text-sm" style={mutedText}>{t('admin.totalCount')}: {usersData.pagination.total}</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-700">
-                      <tr>
-                        <th className="p-2 text-left text-slate-300">ID</th>
-                        <th className="p-2 text-left text-slate-300">名称</th>
-                        <th className="p-2 text-left text-slate-300">阵营</th>
-                        <th className="p-2 text-left text-slate-300">等级</th>
-                        <th className="p-2 text-left text-slate-300">类型</th>
-                        <th className="p-2 text-left text-slate-300">状态</th>
-                        <th className="p-2 text-left text-slate-300">操作</th>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                        {[t('admin.userId'), t('admin.userName'), t('admin.faction'), t('admin.level'), t('admin.type'), t('admin.status'), t('admin.actions')].map((h) => (
+                          <th key={h} className="p-2 text-left" style={{ color: 'var(--text-secondary)' }}>{h}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {usersData.users.slice(0, 10).map((user) => (
-                        <tr key={user.id} className="border-b border-slate-700">
-                          <td className="p-2 text-slate-400">{user.id.slice(0, 12)}...</td>
-                          <td className="p-2 text-white">{user.name}</td>
-                          <td className="p-2 text-purple-400">{user.faction}</td>
-                          <td className="p-2 text-amber-400">Lv.{user.level}</td>
-                          <td className="p-2 text-blue-400">{user.isGuest ? '游客' : '注册'}</td>
+                        <tr key={user.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <td className="p-2" style={mutedText}>{user.id.slice(0, 12)}...</td>
+                          <td className="p-2" style={{ color: 'var(--text-primary)' }}>{user.name}</td>
+                          <td className="p-2" style={{ color: 'var(--accent-purple)' }}>{user.faction}</td>
+                          <td className="p-2" style={{ color: 'var(--accent-gold)' }}>Lv.{user.level}</td>
+                          <td className="p-2" style={{ color: 'var(--accent-blue)' }}>{user.isGuest ? t('admin.guestType') : t('admin.registeredType')}</td>
                           <td className="p-2">
-                            {user.banned ? (
-                              <span className="px-2 py-0.5 bg-red-900/50 text-red-400 text-xs rounded font-medium">已封禁</span>
-                            ) : (
-                              <span className="px-2 py-0.5 bg-green-900/50 text-green-400 text-xs rounded font-medium">正常</span>
-                            )}
+                            <span className="px-2 py-0.5 text-xs rounded font-medium"
+                              style={{
+                                background: user.banned ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                                color: user.banned ? 'var(--accent-red)' : 'var(--accent-green)',
+                              }}>
+                              {user.banned ? t('admin.banned') : t('admin.normal')}
+                            </span>
                           </td>
                           <td className="p-2">
                             <div className="flex gap-1">
                               <button
                                 onClick={() => handleUserBan(user)}
                                 disabled={banUserMutation.isPending}
-                                className={`px-2 py-1 text-xs rounded ${
-                                  user.banned
-                                    ? 'bg-green-600 text-white hover:bg-green-500'
-                                    : 'bg-yellow-600 text-white hover:bg-yellow-500'
-                                } disabled:opacity-50`}
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{
+                                  background: user.banned ? 'var(--accent-green)' : 'var(--accent-gold)',
+                                  color: 'white',
+                                }}
                               >
-                                {user.banned ? '解除' : '封禁'}
+                                {user.banned ? t('admin.unban') : t('admin.ban')}
                               </button>
                               <button
                                 onClick={() => handleUserDelete(user)}
                                 disabled={deleteUserMutation.isPending}
-                                className="px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
+                                className="px-2 py-1 text-xs rounded disabled:opacity-50"
+                                style={{ background: 'var(--accent-red)', color: 'white' }}
                               >
-                                删除
+                                {t('admin.delete')}
                               </button>
                             </div>
                           </td>
@@ -556,10 +516,11 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ========== 充值管理 ========== */}
         {activeTab === 'recharge' && (
-          <div className="space-y-4">
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-white mb-3">充值操作</h3>
+          <>
+            <div className="rounded-lg p-4" style={cardStyle}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.rechargeOperation')}</h3>
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -574,47 +535,48 @@ export default function AdminPage() {
                 className="space-y-3"
               >
                 <div>
-                  <label className="text-slate-400 text-sm">玩家ID</label>
-                  <input name="playerId" placeholder="player_xxxx" className="w-full px-3 py-2 bg-slate-700 text-white rounded" />
+                  <label style={labelText}>{t('admin.playerId')}</label>
+                  <input name="playerId" placeholder="player_xxxx" style={inputStyle} />
                 </div>
                 <div>
-                  <label className="text-slate-400 text-sm">金币数量</label>
-                  <input name="amount" type="number" placeholder="100" className="w-full px-3 py-2 bg-slate-700 text-white rounded" />
+                  <label style={labelText}>{t('admin.goldAmount')}</label>
+                  <input name="amount" type="number" placeholder="100" style={inputStyle} />
                 </div>
                 <div>
-                  <label className="text-slate-400 text-sm">原因</label>
-                  <input name="reason" placeholder="活动奖励" className="w-full px-3 py-2 bg-slate-700 text-white rounded" />
+                  <label style={labelText}>{t('admin.reason')}</label>
+                  <input name="reason" placeholder={t('admin.activityReward')} style={inputStyle} />
                 </div>
                 <button
                   type="submit"
                   disabled={rechargeMutation.isPending}
-                  className="w-full py-2 bg-amber-500 text-slate-900 font-bold rounded hover:bg-amber-400 disabled:opacity-50"
+                  className="w-full py-2 font-bold rounded disabled:opacity-50"
+                  style={{ background: 'var(--accent-gold)', color: 'var(--bg-primary)' }}
                 >
-                  {rechargeMutation.isPending ? '处理中...' : '充值'}
+                  {rechargeMutation.isPending ? t('admin.processing') : t('admin.recharge')}
                 </button>
               </form>
             </div>
 
-            <div className="bg-slate-800 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-white mb-3">充值记录</h3>
-              {rechargeLoading ? (
-                <div className="text-slate-400">加载中...</div>
-              ) : rechargeError ? (
-                <ErrorDisplay message={rechargeError instanceof Error ? rechargeError.message : '获取充值记录失败'} />
-              ) : rechargeData && (
+            <div className="rounded-lg p-4" style={cardStyle}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.rechargeRecords')}</h3>
+              {rechargeLoading && <div className="loading-state">{t('common.loading')}</div>}
+              {rechargeError && <ErrorDisplay message={rechargeError instanceof Error ? rechargeError.message : t('admin.fetchRechargeFailed')} />}
+              {rechargeData && (
                 <>
-                  <p className="text-slate-400 mb-3">总数: {rechargeData.pagination.total}</p>
+                  <p className="mb-3 text-sm" style={mutedText}>{t('admin.totalCount')}: {rechargeData.pagination.total}</p>
                   {rechargeData.logs.length === 0 ? (
-                    <p className="text-slate-500">暂无充值记录</p>
+                    <div className="empty-state">
+                      <p>{t('admin.noRechargeRecords')}</p>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {rechargeData.logs.map((log) => (
-                        <div key={log.id} className="bg-slate-700 p-3 rounded text-sm">
+                        <div key={log.id} className="rounded p-3 text-sm" style={subCardStyle}>
                           <div className="flex justify-between">
-                            <span className="text-slate-400">{log.playerName || log.playerId}</span>
-                            <span className="text-amber-400 font-bold">+{log.amount}</span>
+                            <span style={mutedText}>{log.playerName || log.playerId}</span>
+                            <span className="font-bold" style={{ color: 'var(--accent-gold)' }}>+{log.amount}</span>
                           </div>
-                          <div className="text-slate-500 text-xs">{log.reason} - {new Date(log.executedAt).toLocaleString()}</div>
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{log.reason} - {new Date(log.executedAt).toLocaleString()}</div>
                         </div>
                       ))}
                     </div>
@@ -622,37 +584,38 @@ export default function AdminPage() {
                 </>
               )}
             </div>
-          </div>
+          </>
         )}
 
+        {/* ========== Agent日志 ========== */}
         {activeTab === 'logs' && (
-          <div className="bg-slate-800 rounded-lg p-4">
-            <h3 className="text-lg font-bold text-white mb-3">Agent任务日志</h3>
-            {agentLogsLoading ? (
-              <div className="text-slate-400">加载中...</div>
-            ) : agentLogsError ? (
-              <ErrorDisplay message={agentLogsError instanceof Error ? agentLogsError.message : '获取Agent日志失败'} />
-            ) : agentLogsData && (
+          <div className="rounded-lg p-4" style={cardStyle}>
+            <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>{t('admin.agentTaskLogs')}</h3>
+            {agentLogsLoading && <div className="loading-state">{t('common.loading')}</div>}
+            {agentLogsError && <ErrorDisplay message={agentLogsError instanceof Error ? agentLogsError.message : t('admin.fetchAgentLogsFailed')} />}
+            {agentLogsData && (
               <>
-                <p className="text-slate-400 mb-3">总数: {agentLogsData.pagination.total}</p>
+                <p className="mb-3 text-sm" style={mutedText}>{t('admin.totalCount')}: {agentLogsData.pagination.total}</p>
                 {agentLogsData.logs.length === 0 ? (
-                  <p className="text-slate-500">暂无Agent任务日志</p>
+                  <div className="empty-state"><p>{t('admin.noAgentTaskLogs')}</p></div>
                 ) : (
                   <div className="space-y-2">
-                    {agentLogsData.logs.map((log) => (
-                      <div key={log.id} className="bg-slate-700 p-3 rounded text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">{log.agentId}</span>
-                          <span className={`font-bold ${
-                            log.status === 'completed' ? 'text-green-400' :
-                            log.status === 'running' ? 'text-blue-400' :
-                            log.status === 'failed' ? 'text-red-400' :
-                            'text-slate-400'
-                          }`}>{log.status}</span>
+                    {agentLogsData.logs.map((log) => {
+                      const statusColors: Record<string, string> = {
+                        completed: 'var(--accent-green)',
+                        running: 'var(--accent-blue)',
+                        failed: 'var(--accent-red)',
+                      }
+                      return (
+                        <div key={log.id} className="rounded p-3 text-sm" style={subCardStyle}>
+                          <div className="flex justify-between">
+                            <span style={mutedText}>{log.agentId}</span>
+                            <span className="font-bold" style={{ color: statusColors[log.status] || 'var(--text-muted)' }}>{log.status}</span>
+                          </div>
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{log.taskType} - {new Date(log.createdAt).toLocaleString()}</div>
                         </div>
-                        <div className="text-slate-500 text-xs">{log.taskType} - {new Date(log.createdAt).toLocaleString()}</div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </>

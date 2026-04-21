@@ -1,6 +1,6 @@
 // API Types - Based on docs/api-interface.md
 
-import type { Faction, FactionLevel, HistoryStage, RelationshipLevel } from './game.js';
+import type { Nation, NationLevel, HistoryStage, RelationshipLevel } from './game.js';
 
 // ============================================
 // API Response Types
@@ -49,8 +49,8 @@ export interface PlayerStatusResponse {
   id: string;
   name: string;
   age: number;
-  faction: Faction | null;
-  factionLevel: FactionLevel | null;
+  faction: Nation | null;
+  factionLevel: NationLevel | null;
   titles: string[];
   level: number;
   experience: number;
@@ -100,7 +100,7 @@ export interface PlayerResourcesResponse {
 export interface PlayerLocationResponse {
   region: string;
   city: string | null;
-  faction: Faction;
+  faction: Nation;
 }
 
 // ============================================
@@ -119,7 +119,7 @@ export interface EventSummaryResponse {
   expiresAt: string | null;
   remainingTime: number | null;
   relatedNPCs: string[];
-  relatedFactions: Faction[];
+  relatedFactions: Nation[];
   importance: 'minor' | 'normal' | 'major' | 'critical';
   playerTriggered: boolean;
 }
@@ -192,37 +192,37 @@ export interface WorldStateResponse {
   };
   historyStage: HistoryStage;
   balance: {
-    powerIndex: Record<Faction, number>;
+    powerIndex: Record<Nation, number>;
     balanceStatus: string;
     adjustmentNeeded: boolean;
   };
-  factions: Record<Faction, FactionSummaryResponse>;
+  factions: Record<Nation, NationSummaryResponse>;
   activeEvents: WorldEventSummary[];
   cities: CitySummary[];
 }
 
-export interface FactionSummaryResponse {
+export interface NationSummaryResponse {
   name: string;
   leader: string;
   military: number;
   economy: number;
   stability: number;
   influence: number;
-  relations: Record<Faction, string>;
+  relations: Record<Nation, string>;
 }
 
 export interface WorldEventSummary {
   id: string;
   type: string;
   title: string;
-  affectedFactions: Faction[];
+  affectedFactions: Nation[];
   duration: number;
 }
 
 export interface CitySummary {
   id: string;
   name: string;
-  faction: Faction;
+  faction: Nation;
   population: number;
   prosperity: number;
 }
@@ -236,7 +236,7 @@ export interface LoginRequest {
   identityToken: string;
   newPlayer?: {
     name: string;
-    startingFaction: Faction;
+    startingFaction: Nation;
   };
 }
 
@@ -251,7 +251,7 @@ export interface LoginResponse {
     id: string;
     name: string;
     isNew: boolean;
-    faction: Faction | null;
+    faction: Nation | null;
     level: number;
   };
   gameState: {
@@ -306,4 +306,39 @@ export function createErrorResponse(
 
 export function generateRequestId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+}
+
+// ============================================
+// Internal Faction API Types
+// ============================================
+
+export interface InternalFactionDetail {
+  id: string;
+  name: string;
+  description: string;
+  nation: string; // 所属国家
+  icon: string;
+  color: string;
+  memberCount: number;
+  influence: number;
+}
+
+export interface GetNationFactionsResponse {
+  nationId: string;
+  nationName: string;
+  factions: InternalFactionDetail[];
+}
+
+export interface GetFactionReputationResponse {
+  factionId: string;
+  factionName: string;
+  reputation: number;
+  level: string;
+}
+
+export interface GetInternalFactionDetailResponse {
+  faction: InternalFactionDetail;
+  playerReputation: number;
+  playerLevel: string;
+  topMembers: Array<{ name: string; reputation: number; level: number }>;
 }

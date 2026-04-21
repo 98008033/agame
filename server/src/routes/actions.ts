@@ -14,6 +14,7 @@ import {
 } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import { createRateLimiter } from '../middleware/rateLimiter.js';
+import { gainSkillExp } from '../services/skillService.js';
 
 const router = Router();
 
@@ -223,8 +224,17 @@ router.post('/execute', actionRateLimiter, async (req: Request, res: Response): 
       case 'practice_skill':
         // 随机技能经验 +2~5
         const expGain = Math.floor(Math.random() * 4) + 2;
-        rewards = { skillExp: { random: expGain } };
-        narrativeFeedback = `你投入时间训练，技艺精进。获得 ${expGain} 经验。`;
+        const targetSkill = (targetId as string) ?? 'survival';
+        try {
+          const skillResult = await gainSkillExp(playerId, targetSkill, expGain, 'practice_skill');
+          rewards = { skillExp: { skill: targetSkill, exp: expGain, leveledUp: skillResult.leveledUp } };
+          narrativeFeedback = skillResult.leveledUp
+            ? `你的 ${targetSkill} 升至 Lv.${skillResult.newLevel}！`
+            : `你投入时间训练，技艺精进。获得 ${expGain} 经验。`;
+        } catch {
+          rewards = { skillExp: { skill: targetSkill, exp: expGain } };
+          narrativeFeedback = `你投入时间训练 ${targetSkill}，技艺有所提升。获得 ${expGain} 经验。`;
+        }
         break;
 
       case 'hunt_monsters':

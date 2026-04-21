@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { npcApi } from '../../services'
 
 export interface DialogMessage {
@@ -25,6 +26,7 @@ interface NPCDialogProps {
 const avatars = ['👨‍🌾', '👩‍🔧', '👴', '👩‍🎓', '🧑‍⚔️', '👨‍💼', '👩‍🏫', '🧙']
 
 export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<DialogMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -65,7 +67,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
           setMessages([{
             id: 'greeting',
             role: 'npc',
-            content: `${npc.name}向你点了点头，等待你的话语。`,
+            content: t('npc_dialog.greeting', { name: npc.name }),
             timestamp: new Date().toISOString(),
           }])
         }
@@ -75,7 +77,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
       setMessages([{
         id: 'greeting',
         role: 'npc',
-        content: `${npc.name}向你点了点头，等待你的话语。`,
+        content: t('npc_dialog.greeting', { name: npc.name }),
         timestamp: new Date().toISOString(),
       }])
     }
@@ -103,7 +105,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
         const npcReply: DialogMessage = {
           id: `npc_${Date.now()}`,
           role: 'npc',
-          content: data.message || data.response || `${npc.name}沉默了一会儿，没有回应。`,
+          content: data.message || data.response || t('npc_dialog.silent', { name: npc.name }),
           timestamp: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, npcReply])
@@ -113,19 +115,19 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
           const sysMsg: DialogMessage = {
             id: `sys_${Date.now()}`,
             role: 'system',
-            content: `与${npc.name}的关系发生了变化: ${data.relationshipChange}`,
+            content: t('npc_dialog.relationshipChanged', { name: npc.name, change: data.relationshipChange }),
             timestamp: new Date().toISOString(),
           }
           setMessages((prev) => [...prev, sysMsg])
         }
       } else {
-        throw new Error(response.data.message || '对话失败')
+        throw new Error(response.data.message || t('npc_dialog.dialogFailed'))
       }
     } catch (error) {
       const errorMsg: DialogMessage = {
         id: `err_${Date.now()}`,
         role: 'system',
-        content: error instanceof Error ? error.message : '对话失败，请重试',
+        content: error instanceof Error ? error.message : t('npc_dialog.dialogFailedRetry'),
         timestamp: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMsg])
@@ -152,14 +154,14 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-[var(--text-primary)] font-display">{npc.name}</h3>
             <p className="text-xs text-[var(--text-muted)]">
-              {npc.faction && `${npc.faction} · `}{npc.role || '未知身份'}
+              {npc.faction && `${npc.faction} · `}{npc.role || t('npc_dialog.unknownIdentity')}
             </p>
             {npc.description && (
               <p className="text-xs text-[var(--text-secondary)] mt-1 truncate">{npc.description}</p>
             )}
           </div>
           <button onClick={onClose} className="btn-modern text-sm flex-shrink-0">
-            ✕ 关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -195,7 +197,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-[var(--bg-secondary)] p-3 rounded-lg rounded-bl-none">
-              <p className="text-sm text-[var(--text-muted)] animate-pulse">思考中...</p>
+              <p className="text-sm text-[var(--text-muted)] animate-pulse">{t('npc_dialog.thinking')}</p>
             </div>
           </div>
         )}
@@ -209,7 +211,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入你想说的话..."
+          placeholder={t('npc_dialog.inputPlaceholder')}
           className="input-modern flex-1"
           disabled={isLoading}
         />
@@ -219,7 +221,7 @@ export default function NPCDialog({ npc, onClose }: NPCDialogProps) {
           className="btn-modern disabled:opacity-50"
           style={{ borderColor: 'var(--accent-purple)' }}
         >
-          发送
+          {t('common.send')}
         </button>
       </div>
     </div>

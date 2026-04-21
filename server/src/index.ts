@@ -18,9 +18,10 @@ import worldRoutes from './routes/world.js';
 import playerRoutes from './routes/player.js';
 import npcRoutes from './routes/npc.js';
 import npcLifecycleRoutes from './routes/npcLifecycle.js';
-import factionRoutes from './routes/faction.js';
+import nationRoutes from './routes/nation.js';
 import authRoutes from './routes/auth.js';
 import systemRoutes from './routes/system.js';
+import internalFactionRoutes from './routes/internalFaction.js';
 import actionRoutes from './routes/actions.js';
 import eventRoutes from './routes/events.js';
 import adminRoutes from './routes/admin.js';
@@ -97,11 +98,12 @@ app.use('/v1/world', authMiddleware, apiRateLimiter, worldRoutes);
 app.use('/v1/player', authMiddleware, apiRateLimiter, playerRoutes);
 app.use('/v1/npcs', authMiddleware, apiRateLimiter, npcRoutes);
 app.use('/v1/npcs/lifecycle', authMiddleware, apiRateLimiter, npcLifecycleRoutes);
-app.use('/v1/factions', authMiddleware, apiRateLimiter, factionRoutes);
+app.use('/v1/nations', authMiddleware, apiRateLimiter, nationRoutes);
 app.use('/v1/actions', authMiddleware, apiRateLimiter, actionRoutes);
 app.use('/v1/events', authMiddleware, apiRateLimiter, eventRoutes);
 app.use('/v1/narrative', authMiddleware, apiRateLimiter, narrativeRoutes);
 app.use('/v1/npc-dialog', authMiddleware, apiRateLimiter, npcDialogRoutes);
+app.use('/v1/factions', authMiddleware, apiRateLimiter, internalFactionRoutes);
 
 // ============================================
 // Error Handling

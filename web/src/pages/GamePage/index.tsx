@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useEventStore } from '../../stores/eventStore'
 import { useGameStore } from '../../stores/gameStore'
 import EventCard from '../../components/EventCard'
@@ -7,11 +8,11 @@ import { UserAvatarMenu } from '../../components'
 
 export default function GamePage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { activeEvents, currentEvent, setCurrentEvent, makeDecision, isLoading } = useEventStore()
   const currentDay = useGameStore((s) => s.currentDay)
   const [showEventModal, setShowEventModal] = useState(false)
 
-  // 选择查看的事件
   const handleEventSelect = (eventId: string) => {
     const event = activeEvents.find((e) => e.id === eventId)
     if (event) {
@@ -20,13 +21,11 @@ export default function GamePage() {
     }
   }
 
-  // 处理决策
   const handleDecision = async (eventId: string, choiceIndex: number) => {
     const result = await makeDecision(eventId, choiceIndex)
     return result
   }
 
-  // 关闭事件详情
   const handleClose = () => {
     setShowEventModal(false)
     setCurrentEvent(null)
@@ -35,7 +34,7 @@ export default function GamePage() {
   if (isLoading && activeEvents.length === 0) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <p className="text-[var(--text-secondary)]">加载事件...</p>
+        <p className="text-[var(--text-secondary)]">{t('common.loadingEvent')}</p>
       </div>
     )
   }
@@ -50,11 +49,11 @@ export default function GamePage() {
               onClick={() => navigate('/dashboard')}
               className="btn-modern text-sm"
             >
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
             <div>
-              <h1 className="text-xl font-bold text-[var(--accent-gold)] font-display">游戏决策</h1>
-              <p className="text-[var(--text-secondary)] text-sm">第{currentDay}日 · 事件待处理</p>
+              <h1 className="text-xl font-bold text-[var(--accent-gold)] font-display">{t('game.title')}</h1>
+              <p className="text-[var(--text-secondary)] text-sm">{t('common.day', { day: currentDay })} · {t('game.subtitle')}</p>
             </div>
           </div>
           <UserAvatarMenu />
@@ -65,11 +64,10 @@ export default function GamePage() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <div className="mb-6">
           <h2 className="text-lg font-medium text-[var(--text-secondary)] mb-4 font-display">
-            待处理事件 ({activeEvents.length})
+            {t('game.pendingTitle', { count: activeEvents.length })}
           </h2>
         </div>
 
-        {/* 事件卡片列表 */}
         <div className="space-y-4">
           {activeEvents.map((event) => (
             <button
@@ -85,7 +83,7 @@ export default function GamePage() {
                     {event.faction && (
                       <span className="tag-modern">{event.faction}</span>
                     )}
-                    <span className="text-xs text-[var(--text-muted)]">第{event.triggeredAt}日</span>
+                    <span className="text-xs text-[var(--text-muted)]">{t('event.dayTriggered', { day: event.triggeredAt })}</span>
                   </div>
                 </div>
                 <div className="text-[var(--accent-gold)]">▶</div>
@@ -94,16 +92,15 @@ export default function GamePage() {
           ))}
         </div>
 
-        {/* 无事件提示 */}
         {activeEvents.length === 0 && (
-          <div className="text-center py-12 card-modern-alt">
-            <p className="text-[var(--text-secondary)]">当前没有待处理事件</p>
-            <p className="text-sm text-[var(--text-muted)] mt-2">请继续阅读小说章节</p>
+          <div className="empty-state card-modern-alt">
+            <span className="empty-state-icon">📭</span>
+            <p className="empty-state-title">{t('game.noEvents')}</p>
+            <p className="text-sm">{t('game.noEventsHint')}</p>
           </div>
         )}
       </main>
 
-      {/* 事件详情弹窗 */}
       {showEventModal && currentEvent && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <EventCard event={currentEvent} onDecision={handleDecision} onClose={handleClose} />

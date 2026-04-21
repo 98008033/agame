@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useWebSocketStore, type WSNotification } from '../../stores/websocketStore'
 
 /**
@@ -7,6 +8,7 @@ import { useWebSocketStore, type WSNotification } from '../../stores/websocketSt
  */
 
 export default function NotificationToast() {
+  const { t } = useTranslation()
   const notifications = useWebSocketStore((s) => s.notifications)
   const removeNotification = useWebSocketStore((s) => s.removeNotification)
 
@@ -76,7 +78,7 @@ function NotificationItem({
           onClick={onClose}
           className="text-sm opacity-60 hover:opacity-100"
         >
-          [关闭]
+          {t('notification.close')}
         </button>
       </div>
       <p className="text-xs opacity-50 mt-1">

@@ -1,4 +1,5 @@
 import apiClient from './api'
+import { adminClient } from './api'
 
 // 世界状态相关API
 export const worldApi = {
@@ -140,42 +141,42 @@ export const actionApi = {
     apiClient.get('/actions/history', { params: { limit, offset } }),
 }
 
-// 管理后台API
+// 管理后台API (使用独立客户端，发送 X-Admin-Secret header)
 export const adminApi = {
   // LLM配置
-  getLLMConfig: () => apiClient.get('/admin/llm-config'),
+  getLLMConfig: () => adminClient.get('/admin/llm-config'),
   updateLLMConfig: (data: { provider?: string; apiKey?: string; baseURL?: string; defaultModel?: string; defaultProvider?: string }) =>
-    apiClient.post('/admin/llm-config', data),
+    adminClient.post('/admin/llm-config', data),
   testLLM: (data: { apiKey: string; baseURL?: string; model?: string }) =>
-    apiClient.post('/admin/llm-test', data),
+    adminClient.post('/admin/llm-test', data),
 
   // 用户管理
   getUsers: (page?: number, limit?: number, search?: string) =>
-    apiClient.get('/admin/users', { params: { page, limit, search } }),
-  getUserDetail: (userId: string) => apiClient.get(`/admin/users/${userId}`),
+    adminClient.get('/admin/users', { params: { page, limit, search } }),
+  getUserDetail: (userId: string) => adminClient.get(`/admin/users/${userId}`),
   updateUser: (userId: string, data: Record<string, unknown>) =>
-    apiClient.put(`/admin/users/${userId}`, data),
+    adminClient.put(`/admin/users/${userId}`, data),
   deleteUser: (userId: string) =>
-    apiClient.delete(`/admin/users/${userId}`),
+    adminClient.delete(`/admin/users/${userId}`),
   banUser: (userId: string, reason?: string) =>
-    apiClient.post(`/admin/users/${userId}/ban`, { reason }),
+    adminClient.post(`/admin/users/${userId}/ban`, { reason }),
   unbanUser: (userId: string) =>
-    apiClient.post(`/admin/users/${userId}/unban`),
+    adminClient.post(`/admin/users/${userId}/unban`),
 
   // 充值管理
   recharge: (playerId: string, amount: number, reason?: string) =>
-    apiClient.post('/admin/recharge', { playerId, amount, reason }),
+    adminClient.post('/admin/recharge', { playerId, amount, reason }),
   getRechargeLogs: (page?: number, limit?: number) =>
-    apiClient.get('/admin/recharge-logs', { params: { page, limit } }),
+    adminClient.get('/admin/recharge-logs', { params: { page, limit } }),
 
   // 世界日志
   getAgentLogs: (page?: number, limit?: number, agentId?: string, status?: string) =>
-    apiClient.get('/admin/logs/agent', { params: { page, limit, agentId, status } }),
+    adminClient.get('/admin/logs/agent', { params: { page, limit, agentId, status } }),
   getWorldLogs: (page?: number, limit?: number) =>
-    apiClient.get('/admin/logs/world', { params: { page, limit } }),
+    adminClient.get('/admin/logs/world', { params: { page, limit } }),
 
   // 系统监控
-  getSystemStatus: () => apiClient.get('/admin/system/status'),
+  getSystemStatus: () => adminClient.get('/admin/system/status'),
 }
 
 // NPC Dialog API - 对话系统
@@ -186,6 +187,17 @@ export const npcDialogApi = {
   sendMessage: (npcId: string, message: string) => apiClient.post(`/npc-dialog/${npcId}/message`, { message }),
   getHistory: (npcId: string, limit?: number) => apiClient.get(`/npc-dialog/${npcId}/history`, { params: { limit } }),
   endDialog: (npcId: string) => apiClient.post(`/npc-dialog/${npcId}/end`),
+}
+
+// 派系系统API - 内部派系管理
+export const factionApi = {
+  getNationFactions: (nationId: string) => apiClient.get(`/factions/nation/${nationId}`),
+  getFaction: (id: string) => apiClient.get(`/factions/${id}`),
+  getFactionReputation: (factionId: string) => apiClient.get(`/factions/${factionId}/reputation`),
+  joinFaction: (factionId: string) => apiClient.post(`/factions/${factionId}/join`),
+  leaveFaction: () => apiClient.post('/factions/leave'),
+  getFactionMembers: (factionId: string, page?: number) =>
+    apiClient.get(`/factions/${factionId}/members`, { params: { page } }),
 }
 
 export default {
@@ -199,4 +211,5 @@ export default {
   narrative: narrativeApi,
   action: actionApi,
   npcDialog: npcDialogApi,
+  faction: factionApi,
 }

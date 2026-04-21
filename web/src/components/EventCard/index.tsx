@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { GameEvent, DecisionResult } from '../../stores/eventStore'
 import ChoiceOption from './ChoiceOption'
 
@@ -8,19 +9,12 @@ interface EventCardProps {
   onClose?: () => void
 }
 
-// 阵营颜色映射
-const factionColors = {
-  canglong: 'bg-yellow-100 text-yellow-700',
-  shuanglang: 'bg-blue-100 text-blue-700',
-  jinque: 'bg-green-100 text-green-700',
-  border: 'bg-amber-100 text-amber-700',
-}
-
-const factionLabels = {
-  canglong: '苍龙帝国',
-  shuanglang: '霜狼联邦',
-  jinque: '金雀花王国',
-  border: '边境联盟',
+//  faction颜色映射 (使用CSS变量色)
+const factionColorsMap: Record<string, { bg: string; text: string }> = {
+  canglong: { bg: 'rgba(34,197,94,0.15)', text: 'var(--faction-canglong)' },
+  shuanglang: { bg: 'rgba(14,165,233,0.15)', text: 'var(--faction-shuanglang)' },
+  jinque: { bg: 'rgba(249,115,22,0.15)', text: 'var(--faction-jinque)' },
+  border: { bg: 'rgba(168,85,247,0.15)', text: 'var(--faction-border)' },
 }
 
 // 数值变化动画组件
@@ -48,6 +42,7 @@ function AnimatedValue({ value, previousValue, prefix = '', suffix = '' }: {
 }
 
 export default function EventCard({ event, onDecision, onClose }: EventCardProps) {
+  const { t } = useTranslation()
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<DecisionResult | null>(null)
@@ -57,11 +52,9 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
   const handleSubmit = async () => {
     if (selectedChoice === null) return
 
-    // 触发确认动画
     setShowConfirmAnimation(true)
     setIsSubmitting(true)
 
-    // 等待动画完成一半后再提交
     await new Promise(resolve => setTimeout(resolve, 250))
 
     try {
@@ -74,22 +67,25 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
     setShowConfirmAnimation(false)
   }
 
+  const factionColor = event.faction ? factionColorsMap[event.faction] : null
+
   // 显示结果
   if (result) {
     return (
-      <div className={`bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 animate-success-pop ${result.success ? '' : 'animate-fail-shake'}`}>
+      <div className={`rounded-lg shadow-xl max-w-2xl w-full p-6 animate-success-pop ${result.success ? '' : 'animate-fail-shake'}`}
+        style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="text-center">
           <div className={`text-4xl mb-4 animate-reward-pop ${result.success ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
             {result.success ? '✓' : '✗'}
           </div>
           <h3 className={`text-xl font-bold mb-4 animate-slideUp ${result.success ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
-            {result.success ? '决策成功' : '决策失败'}
+            {result.success ? t('event.decisionSuccess') : t('event.decisionFailed')}
           </h3>
 
           {/* 叙事反馈 */}
           <div
-            className="text-gray-600 mb-6 p-4 bg-gray-50 rounded-lg animate-slideUp"
-            style={{ fontFamily: 'serif', animationDelay: '0.1s' }}
+            className="mb-6 p-4 rounded-lg animate-slideUp"
+            style={{ fontFamily: 'serif', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', animationDelay: '0.1s' }}
           >
             {result.narrativeFeedback}
           </div>
@@ -97,8 +93,8 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
           {/* 后果显示 */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             {result.consequences.gold !== undefined && (
-              <div className="p-3 bg-yellow-50 rounded animate-reward-pop" style={{ animationDelay: '0.2s' }}>
-                <span className="text-yellow-600">💰 金币</span>
+              <div className="p-3 rounded animate-reward-pop" style={{ background: 'rgba(245,158,11,0.1)', animationDelay: '0.2s' }}>
+                <span style={{ color: 'var(--accent-gold)' }}>💰 {t('event.goldReward')}</span>
                 <AnimatedValue
                   value={result.consequences.gold}
                   previousValue={previousResources.gold}
@@ -106,23 +102,23 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
               </div>
             )}
             {result.consequences.influence !== undefined && (
-              <div className="p-3 bg-purple-50 rounded animate-reward-pop" style={{ animationDelay: '0.3s' }}>
-                <span className="text-purple-600">⭐ 影响力</span>
+              <div className="p-3 rounded animate-reward-pop" style={{ background: 'rgba(139,92,246,0.1)', animationDelay: '0.3s' }}>
+                <span style={{ color: 'var(--accent-purple)' }}>⭐ {t('event.influenceReward')}</span>
                 <AnimatedValue
                   value={result.consequences.influence}
                   previousValue={previousResources.influence}
                 />
               </div>
             )}
-            {/* 关系变化 */}
             {result.consequences.reputation && Object.entries(result.consequences.reputation).length > 0 && (
-              <div className="p-3 bg-blue-50 rounded animate-reward-pop col-span-2" style={{ animationDelay: '0.4s' }}>
-                <span className="text-blue-600">👑 声望变化</span>
+              <div className="p-3 rounded animate-reward-pop col-span-2" style={{ background: 'rgba(59,130,246,0.1)', animationDelay: '0.4s' }}>
+                <span style={{ color: 'var(--accent-blue)' }}>👑 {t('event.reputationChange')}</span>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {Object.entries(result.consequences.reputation).map(([faction, change]) => (
-                    <span key={faction} className="animate-relation-pulse inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100">
-                      <span>{factionLabels[faction as keyof typeof factionLabels]?.slice(0, 2) || faction}</span>
-                      <span className={change > 0 ? 'text-green-600' : 'text-red-600'}>
+                    <span key={faction} className="animate-relation-pulse inline-flex items-center gap-1 px-2 py-1 rounded"
+                      style={{ background: 'rgba(59,130,246,0.15)' }}>
+                      <span>{t(`factions.${faction}`).slice(0, 2)}</span>
+                      <span className={change > 0 ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}>
                         {change > 0 ? '+' : ''}{change}
                       </span>
                     </span>
@@ -130,13 +126,13 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
                 </div>
               </div>
             )}
-            {/* 新标签 */}
             {result.consequences.newTags && result.consequences.newTags.length > 0 && (
-              <div className="p-3 bg-green-50 rounded animate-reward-pop col-span-2" style={{ animationDelay: '0.5s' }}>
-                <span className="text-green-600">🏷️ 新标签</span>
+              <div className="p-3 rounded animate-reward-pop col-span-2" style={{ background: 'rgba(16,185,129,0.1)', animationDelay: '0.5s' }}>
+                <span style={{ color: 'var(--accent-green)' }}>🏷️ {t('event.newTag')}</span>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {result.consequences.newTags.map((tag) => (
-                    <span key={tag} className="px-2 py-1 rounded bg-green-100 text-green-700 animate-slideIn">
+                    <span key={tag} className="px-2 py-1 rounded animate-slideIn"
+                      style={{ background: 'rgba(16,185,129,0.15)', color: 'var(--accent-green)' }}>
                       {tag}
                     </span>
                   ))}
@@ -145,12 +141,12 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
             )}
           </div>
 
-          {/* 关闭按钮 */}
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all"
+            className="px-6 py-2 text-white rounded-lg transition-all"
+            style={{ background: 'var(--accent-blue)' }}
           >
-            继续
+            {t('event.continue')}
           </button>
         </div>
       </div>
@@ -158,38 +154,40 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+    <div className="rounded-lg shadow-xl max-w-2xl w-full"
+      style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)' }}>
       {/* 事件头部 */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {event.faction && (
-              <span className={`px-2 py-1 rounded text-sm ${factionColors[event.faction]}`}>
-                {factionLabels[event.faction]}
+            {event.faction && factionColor && (
+              <span className="px-2 py-1 rounded text-sm"
+                style={{ background: factionColor.bg, color: factionColor.text }}>
+                {t(`factions.${event.faction}`)}
               </span>
             )}
-            <h2 className="text-lg font-bold text-gray-800">{event.title}</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{event.title}</h2>
           </div>
-          <div className="text-sm text-gray-500">第{event.triggeredAt}日</div>
+          <div className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('event.dayTriggered', { day: event.triggeredAt })}</div>
         </div>
       </div>
 
       {/* 事件内容 */}
       <div className="p-6">
         {/* 描述 */}
-        <p className="text-gray-600 mb-4">{event.description}</p>
+        <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>{event.description}</p>
 
         {/* 小说风格叙事 */}
         <div
-          className="p-4 bg-gray-50 rounded-lg mb-6 text-gray-700"
-          style={{ fontFamily: 'serif' }}
+          className="p-4 rounded-lg mb-6"
+          style={{ fontFamily: 'serif', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
         >
           {event.narrativeText}
         </div>
 
         {/* 选择面板 */}
         <div className="space-y-3 mb-6">
-          <h3 className="text-sm font-medium text-gray-500">【你的选择】</h3>
+          <h3 className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{t('event.yourChoice')}</h3>
           {event.choices.map((choice) => (
             <ChoiceOption
               key={choice.id}
@@ -210,8 +208,11 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
         {/* 操作按钮 */}
         <div className="flex justify-end gap-3">
           {onClose && (
-            <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-all">
-              暂不处理
+            <button onClick={onClose} className="px-4 py-2 transition-all"
+              style={{ color: 'var(--text-secondary)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}>
+              {t('event.noChoice')}
             </button>
           )}
           <button
@@ -221,16 +222,20 @@ export default function EventCard({ event, onDecision, onClose }: EventCardProps
               showConfirmAnimation ? 'animate-decision-confirm ring-2 ring-[var(--accent-gold)]' : ''
             } ${
               selectedChoice !== null && !isSubmitting
-                ? 'bg-blue-500 text-white hover:bg-blue-600 hover:scale-105'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'text-white hover:scale-105'
+                : 'cursor-not-allowed'
             }`}
+            style={{
+              background: selectedChoice !== null && !isSubmitting ? 'var(--accent-blue)' : 'var(--bg-elevated)',
+              color: selectedChoice !== null && !isSubmitting ? 'white' : 'var(--text-muted)',
+            }}
           >
             {isSubmitting ? (
               <span className="animate-pulse flex items-center gap-2">
                 <span className="animate-ap-consume">⚡</span>
-                处理中...
+                {t('event.processing')}
               </span>
-            ) : '确认选择'}
+            ) : t('event.confirmChoice')}
           </button>
         </div>
       </div>

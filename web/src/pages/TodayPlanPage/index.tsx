@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { actionApi } from '../../services'
 import { usePlayerStore, type SkillId } from '../../stores/playerStore'
 import { UserAvatarMenu } from '../../components'
+import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 // 技能经验奖励类型映射（根据行动类型）
 const actionSkillRewards: Record<string, SkillId[]> = {
@@ -33,20 +35,20 @@ const actionIcons: Record<string, string> = {
 
 // 行动名称映射
 const actionNames: Record<string, string> = {
-  practice_skill: '练习技能',
-  hunt_monsters: '打怪狩猎',
-  visit_npc: '拜访NPC',
-  work_job: '工作赚钱',
-  handle_event: '处理事件',
+  practice_skill: 'plan.actionNames.practice',
+  hunt_monsters: 'plan.actionNames.hunt',
+  visit_npc: 'plan.actionNames.visitNpc',
+  work_job: 'plan.actionNames.work',
+  handle_event: 'plan.actionNames.handleEvent',
 }
 
 // 行动效果预览
 const actionEffects: Record<string, string> = {
-  practice_skill: '技能经验 +2~5',
-  hunt_monsters: '金币 +30~100',
-  visit_npc: '关系 +5~10',
-  work_job: '金币 +30~50',
-  handle_event: '处理待决事件',
+  practice_skill: 'plan.skillExpEffect',
+  hunt_monsters: 'plan.goldEffect',
+  visit_npc: 'plan.relationshipEffect',
+  work_job: 'plan.goldEffect2',
+  handle_event: 'plan.processEvent',
 }
 
 interface ActionItem {
@@ -99,6 +101,7 @@ interface ActionResult {
 export default function TodayPlanPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const { player } = usePlayerStore()
   const [resultModal, setResultModal] = useState<ActionResult | null>(null)
 
@@ -196,19 +199,19 @@ export default function TodayPlanPage() {
       <div className="min-h-screen bg-[var(--pixel-bg-dark)] flex items-center justify-center">
         <div className="stone-panel p-8 text-center max-w-md">
           <span className="text-4xl mb-4 block">🎭</span>
-          <p className="text-[var(--pixel-text-light)] mb-2 text-lg">你还没有角色</p>
-          <p className="text-[var(--pixel-text-light)]/60 mb-6">创建角色开始你的冒险之旅</p>
+          <p className="text-[var(--pixel-text-light)] mb-2 text-lg">{t('common.noCharacter')}</p>
+          <p className="text-[var(--pixel-text-light)]/60 mb-6">{t('common.createCharacterHint')}</p>
           <button
             onClick={() => navigate('/character/create')}
             className="pixel-btn magic-glow-purple mb-4"
           >
-            创建角色
+            {t('common.createCharacter')}
           </button>
           <button
             onClick={() => navigate('/dashboard')}
             className="text-sm text-[var(--pixel-text-light)]/50 hover:text-[var(--pixel-text-light)]"
           >
-            返回主页
+            {t('common.backToDashboard')}
           </button>
         </div>
       </div>
@@ -229,9 +232,9 @@ export default function TodayPlanPage() {
               onClick={() => navigate('/dashboard')}
               className="pixel-btn text-sm bg-[var(--pixel-bg-mid)]"
             >
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
-            <h1 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font">今日计划</h1>
+            <h1 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font">{t('plan.title')}</h1>
           </div>
           <UserAvatarMenu />
         </div>
@@ -242,10 +245,10 @@ export default function TodayPlanPage() {
         <div className="paper-panel p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-medium text-[var(--pixel-text-dark)] pixel-font">
-              【行动点】
+              {t('plan.apTitle')}
             </h2>
             <span className="text-xs text-[var(--pixel-bg-mid)]">
-              下次重置: {apStatus?.nextResetAt ? new Date(apStatus.nextResetAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '--'}
+              {t('plan.nextReset')} {apStatus?.nextResetAt ? new Date(apStatus.nextResetAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '--'}
             </span>
           </div>
 
@@ -270,7 +273,7 @@ export default function TodayPlanPage() {
           </div>
 
           <p className="text-xs text-[var(--pixel-bg-mid)] mt-2 pixel-font">
-            今日已用: {apStatus?.totalApUsed ?? 0} AP
+            {t('plan.todayUsed', { count: apStatus?.totalApUsed ?? 0 })}
           </p>
         </div>
 
@@ -278,13 +281,13 @@ export default function TodayPlanPage() {
         {apStatus?.todayActions && apStatus.todayActions.length > 0 && (
           <div className="stone-panel p-4 mb-4">
             <h3 className="text-sm font-medium text-[var(--pixel-text-light)] mb-3 pixel-font">
-              【今日已完成】
+              {t('plan.todayCompleted')}
             </h3>
             <div className="space-y-2">
               {apStatus.todayActions.map((action, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-sm text-[var(--pixel-text-light)]">
                   <span>{actionIcons[action.type] || '✓'}</span>
-                  <span className="flex-1">{actionNames[action.type] || action.type}</span>
+                  <span className="flex-1">{t(actionNames[action.type]) || action.type}</span>
                   <span className="text-xs text-[var(--pixel-bg-mid)]">-{action.apCost}AP</span>
                   <span className="text-xs">{new Date(action.executedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
@@ -296,12 +299,12 @@ export default function TodayPlanPage() {
         {/* 可用行动列表 */}
         <div className="mb-4">
           <h3 className="text-sm font-medium text-[var(--pixel-text-dark)] mb-3 pixel-font px-1">
-            【可用行动】
+            {t('plan.availableActions')}
           </h3>
 
           {isLoading ? (
             <div className="stone-panel p-4 text-center text-[var(--pixel-text-light)]">
-              加载中...
+              {t('common.loading')}
             </div>
           ) : (
             <div className="space-y-3">
@@ -333,7 +336,7 @@ export default function TodayPlanPage() {
                           {action.apCost}AP
                         </div>
                         <div className="text-xs text-[var(--pixel-bg-mid)]">
-                          {actionEffects[action.type]}
+                          {t(actionEffects[action.type])}
                         </div>
                       </div>
                     </div>
@@ -341,7 +344,7 @@ export default function TodayPlanPage() {
                     {/* 未解锁提示 */}
                     {!action.unlocked && action.requirements.length > 0 && (
                       <div className="mt-2 text-xs text-[var(--pixel-health)]">
-                        需求: {action.requirements.map(r => r.type === 'resource' ? `金币≥${r.value}` : r.value).join(', ')}
+                        {action.requirements.map(r => r.type === 'resource' ? t('plan.goldReq', { value: r.value }) : r.value).join(', ')}
                       </div>
                     )}
                   </button>
@@ -354,15 +357,15 @@ export default function TodayPlanPage() {
         {/* 待办提醒区域 */}
         <div className="paper-panel p-4 mb-4">
           <h3 className="text-sm font-medium text-[var(--pixel-text-dark)] mb-3 pixel-font">
-            【待办提醒】
+            {t('plan.todoReminder')}
           </h3>
           <div className="text-sm text-[var(--pixel-bg-mid)]">
             <div className="flex items-center gap-2 mb-2">
               <span>💡</span>
-              <span>暂无待处理事项</span>
+              <span>{t('plan.noTodoItems')}</span>
             </div>
             <p className="text-xs opacity-70">
-              完成行动后可能触发新的事件或提醒
+              {t('plan.todoHint')}
             </p>
           </div>
         </div>
@@ -373,13 +376,13 @@ export default function TodayPlanPage() {
             onClick={() => navigate('/status')}
             className="pixel-btn bg-[var(--pixel-bg-mid)] flex-1"
           >
-            查看状态
+            {t('plan.viewStatus')}
           </button>
           <button
             onClick={() => navigate('/news')}
             className="pixel-btn bg-[var(--pixel-bg-mid)] flex-1"
           >
-            查看晨报
+            {t('plan.viewMorningNews')}
           </button>
         </div>
       </main>
@@ -389,7 +392,7 @@ export default function TodayPlanPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="paper-panel max-w-md w-full p-6 pixel-shadow">
             <h2 className="text-xl font-bold mb-4 pixel-font text-center" style={{ color: resultModal.success ? 'var(--pixel-text-dark)' : 'var(--pixel-health)' }}>
-              {resultModal.success ? '【行动完成】' : '【执行失败】'}
+              {resultModal.success ? t('plan.actionComplete') : t('plan.actionFailed')}
             </h2>
 
             {/* 叙事反馈 */}
@@ -403,12 +406,12 @@ export default function TodayPlanPage() {
             {resultModal.success && (
             <div className="paper-panel p-4 mb-4">
               <h3 className="text-sm font-medium text-[var(--pixel-text-dark)] mb-2 pixel-font">
-                📊 收益
+                {t('plan.benefit')}
               </h3>
               <div className="space-y-1">
                 {/* AP消耗 */}
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--pixel-bg-mid)]">行动点</span>
+                  <span className="text-[var(--pixel-bg-mid)]">{t('plan.actionPoint')}</span>
                   <span className="text-[var(--pixel-health)] font-medium">
                     -{resultModal.apConsumed} → 剩余 {resultModal.apRemaining}
                   </span>
@@ -416,7 +419,7 @@ export default function TodayPlanPage() {
                 {/* 资源收益 */}
                 {resultModal.rewards?.resources?.gold && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--pixel-bg-mid)]">金币</span>
+                    <span className="text-[var(--pixel-bg-mid)]">{t('common.gold')}</span>
                     <span className="text-[var(--pixel-exp)] font-medium">
                       +{resultModal.rewards.resources.gold}
                     </span>
@@ -425,7 +428,7 @@ export default function TodayPlanPage() {
                 {/* 技能经验 */}
                 {resultModal.rewards?.skillExp?.random && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--pixel-bg-mid)]">技能经验</span>
+                    <span className="text-[var(--pixel-bg-mid)]">{t('plan.skillExp')}</span>
                     <span className="text-[var(--faction-canglong)] font-medium">
                       +{resultModal.rewards.skillExp.random}
                     </span>
@@ -434,7 +437,7 @@ export default function TodayPlanPage() {
                 {/* 关系提升 */}
                 {resultModal.rewards?.relationship?.value && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--pixel-bg-mid)]">关系</span>
+                    <span className="text-[var(--pixel-bg-mid)]">{t('plan.relationship')}</span>
                     <span className="text-[var(--faction-border)] font-medium">
                       +{resultModal.rewards.relationship.value}
                     </span>
@@ -446,7 +449,7 @@ export default function TodayPlanPage() {
 
             {/* 时间戳 */}
             <p className="text-xs text-[var(--pixel-bg-mid)] text-center mb-4">
-              {new Date(resultModal.timestamp).toLocaleString('zh-CN')}
+              {new Date(resultModal.timestamp).toLocaleString(i18n.language)}
             </p>
 
             {/* 关闭按钮 */}
@@ -454,7 +457,7 @@ export default function TodayPlanPage() {
               onClick={closeModal}
               className="w-full pixel-btn bg-[var(--pixel-exp)]"
             >
-              继续
+              {t('common.continue')}
             </button>
           </div>
         </div>

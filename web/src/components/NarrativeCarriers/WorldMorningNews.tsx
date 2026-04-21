@@ -3,6 +3,7 @@
  * 每日生成四阵营新闻，小说章节式排版
  */
 
+import { useTranslation } from 'react-i18next'
 import type { ChapterSection } from '../../stores/novelStore'
 import { getSectionStyle } from '../NovelReader/sectionStyles'
 
@@ -14,16 +15,17 @@ export interface MorningNewsProps {
 }
 
 export default function WorldMorningNews({ day, date, sections, onReadDetail }: MorningNewsProps) {
+  const { t } = useTranslation()
   return (
     <div className="min-h-screen bg-[var(--pixel-bg-dark)]">
       {/* 报头 */}
       <header className="paper-panel py-4 mb-4">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h1 className="text-2xl font-bold text-[var(--pixel-text-dark)] pixel-font mb-2">
-            《埃拉西亚晨报》
+            {t('morning_news.title')}
           </h1>
           <p className="text-sm text-[var(--pixel-bg-mid)]">
-            第{day}期 · {date}
+            {t('morning_news.issue', { day, date })}
           </p>
           <div className="pixel-divider mt-2" />
         </div>
@@ -61,7 +63,7 @@ export default function WorldMorningNews({ day, date, sections, onReadDetail }: 
                   onClick={() => onReadDetail(section.id)}
                   className="mt-4 pixel-btn text-sm"
                 >
-                  [阅读详情]
+                  [{t('morning_news.readDetail')}]
                 </button>
               )}
             </article>
@@ -73,13 +75,13 @@ export default function WorldMorningNews({ day, date, sections, onReadDetail }: 
       <footer className="max-w-4xl mx-auto px-4 pb-8">
         <div className="paper-panel p-4 flex justify-between items-center">
           <button className="pixel-btn">
-            ◀ 昨日新闻
+            ◀ {t('morning_news.yesterdayNews')}
           </button>
           <span className="text-[var(--pixel-text-dark)] pixel-font">
-            下期预告：新的风暴正在酝酿...
+            {t('morning_news.preview')}
           </span>
           <button className="pixel-btn">
-            明日新闻 ▶
+            {t('morning_news.tomorrowNews')} ▶
           </button>
         </div>
       </footer>

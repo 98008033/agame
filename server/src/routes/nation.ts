@@ -1,24 +1,24 @@
-// Faction Routes - GET /v1/factions/*
+// Nation Routes - GET /v1/nations/*
 
 import { Router, type Request, type Response } from 'express';
 import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
-import { isValidFaction, getRelationshipLevel } from '../types/game.js';
+import { isValidNation, getRelationshipLevel, NationNames } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import {
-  getPlayerFactionReputation,
-  getFactionMembers,
-  getFactionRankings,
-  interactWithFaction,
-} from '../services/factionService.js';
+  getPlayerNationReputation,
+  getNationMembers,
+  getNationRankings,
+  interactWithNation,
+} from '../services/nationService.js';
 
 const router = Router();
 
-// POST /v1/factions/:faction/ally - 申请效忠阵营
-router.post('/:faction/ally', async (req: Request, res: Response): Promise<void> => {
+// POST /v1/nations/:nation/ally - 申请效忠阵营
+router.post('/:nation/ally', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const factionParam = req.params['faction'] ?? '';
+  const nationParam = req.params['nation'] ?? '';
 
   if (!playerId) {
     res.status(401).json(createErrorResponse(
@@ -29,12 +29,12 @@ router.post('/:faction/ally', async (req: Request, res: Response): Promise<void>
     return;
   }
 
-  if (!isValidFaction(factionParam)) {
+  if (!isValidNation(nationParam)) {
     res.status(400).json(createErrorResponse(
       'INVALID_REQUEST',
-      '无效的阵营ID',
+      '无效的国家ID',
       requestId,
-      { faction: factionParam }
+      { nation: nationParam }
     ));
     return;
   }
@@ -56,18 +56,18 @@ router.post('/:faction/ally', async (req: Request, res: Response): Promise<void>
 
     // MVP阶段：简化效忠流程
     const reputation = safeJsonParse<Record<string, number>>(player.reputation, {});
-    const factionRep = reputation[factionParam] ?? 0;
+    const nationRep = reputation[nationParam] ?? 0;
 
     // 检查声望是否满足效忠条件
-    if (factionRep < 20) {
+    if (nationRep < 20) {
       res.json(createSuccessResponse({
         success: false,
         request: {
-          faction: factionParam,
+          nation: nationParam,
           timestamp: new Date().toISOString(),
           status: 'rejected',
         },
-        factionResponse: {
+        nationResponse: {
           from: '阵营使者',
           dialogue: '你的声望还不够，我们需要更多了解你的忠诚。',
           attitude: 'cautious',
@@ -87,12 +87,12 @@ router.post('/:faction/ally', async (req: Request, res: Response): Promise<void>
     await prisma.player.update({
       where: { id: playerId },
       data: {
-        faction: factionParam,
+        faction: nationParam,
         factionLevel: 'loyal',
-        titles: safeJsonStringify([...currentTitles, `${factionParam}成员`]),
+        titles: safeJsonStringify([...currentTitles, `${nationParam}成员`]),
         reputation: safeJsonStringify({
           ...reputation,
-          [factionParam]: factionRep + 30,
+          [nationParam]: nationRep + 30,
         }),
       },
     });
@@ -100,23 +100,23 @@ router.post('/:faction/ally', async (req: Request, res: Response): Promise<void>
     res.json(createSuccessResponse({
       success: true,
       request: {
-        faction: factionParam,
+        nation: nationParam,
         timestamp: new Date().toISOString(),
         status: 'accepted',
       },
-      factionResponse: {
+      nationResponse: {
         from: '阵营领袖',
         dialogue: '欢迎你加入我们的阵营，愿你在我们的旗帜下建功立业。',
         attitude: 'welcoming',
       },
       acceptance: {
         factionLevel: 'loyal',
-        initialReputation: factionRep + 30,
+        initialReputation: nationRep + 30,
         welcomeGift: {
           gold: 100,
-          title: `${factionParam}成员`,
+          title: `${nationParam}成员`,
         },
-        narrativeFeedback: `你正式成为${factionParam}阵营的一员。`,
+        narrativeFeedback: `你正式成为${nationParam}阵营的一员。`,
       },
     }, requestId));
   } catch (err) {
@@ -131,11 +131,11 @@ router.post('/:faction/ally', async (req: Request, res: Response): Promise<void>
   }
 });
 
-// GET /v1/factions/:faction/reputation - 查询阵营声望详情
-router.get('/:faction/reputation', async (req: Request, res: Response): Promise<void> => {
+// GET /v1/nations/:nation/reputation - 查询阵营声望详情
+router.get('/:nation/reputation', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const factionParam = req.params['faction'] ?? '';
+  const nationParam = req.params['nation'] ?? '';
 
   if (!playerId) {
     res.status(401).json(createErrorResponse(
@@ -146,12 +146,12 @@ router.get('/:faction/reputation', async (req: Request, res: Response): Promise<
     return;
   }
 
-  if (!isValidFaction(factionParam)) {
+  if (!isValidNation(nationParam)) {
     res.status(400).json(createErrorResponse(
       'INVALID_REQUEST',
-      '无效的阵营ID',
+      '无效的国家ID',
       requestId,
-      { faction: factionParam }
+      { nation: nationParam }
     ));
     return;
   }
@@ -172,35 +172,74 @@ router.get('/:faction/reputation', async (req: Request, res: Response): Promise<
     }
 
     const reputation = safeJsonParse<Record<string, number>>(player.reputation, {});
-    const factionRep = reputation[factionParam] ?? 0;
+    const nationRep = reputation[nationParam] ?? 0;
+    const tags = safeJsonParse<string[]>(player.tags, []);
+
+    // Compute meaningful nation reputation data from player state
+    const repLevel = getRelationshipLevel(nationRep);
+    const isAlly = player.faction === nationParam;
+
+    // Derive nation titles from player's tags
+    const nationTags = tags.filter(t => t.includes(nationParam) || t.includes(NationNames[nationParam as keyof typeof NationNames] ?? ''));
+
+    // Calculate contribution score from game actions toward this nation
+    const nationActions = await prisma.gameAction.findMany({
+      where: { playerId },
+      orderBy: { executedAt: 'desc' },
+      take: 10,
+    });
+    const recentNationActions = nationActions.filter(a => {
+      const rewards = safeJsonParse<Record<string, unknown>>(a.rewards, {});
+      return rewards['nation'] === nationParam || a.actionType === 'visit_npc';
+    }).slice(0, 3).map(a => ({
+      type: a.actionType,
+      narrative: a.narrativeFeedback,
+      executedAt: a.executedAt.toISOString(),
+    }));
+
+    // Derive key figure attitudes from NPC relationships with same nation
+    const nationNPCs = await prisma.nPC.findMany({
+      where: { faction: nationParam, role: { in: ['key', 'important'] } },
+      take: 3,
+    });
+    const keyFigures = nationNPCs.map(npc => {
+      const rels = safeJsonParse<Record<string, Record<string, number>>>(npc.relationships, {});
+      const playerRel = rels['players']?.[playerId] ?? 0;
+      return {
+        npcId: npc.id,
+        name: npc.name,
+        position: npc.factionPosition ?? npc.role,
+        attitude: getRelationshipLevel(playerRel),
+        relationshipValue: playerRel,
+      };
+    });
+
+    // Reputation milestones and unlock info
+    const milestones = [
+      { threshold: 20, label: '效忠资格', unlocked: nationRep >= 20 },
+      { threshold: 50, label: '友善', unlocked: nationRep >= 50 },
+      { threshold: 100, label: '信赖', unlocked: nationRep >= 100 },
+      { threshold: 200, label: '尊敬', unlocked: nationRep >= 200 },
+    ];
+    const nextMilestone = milestones.find(m => !m.unlocked);
 
     res.json(createSuccessResponse({
-      faction: factionParam,
+      nation: nationParam,
+      nationName: NationNames[nationParam as keyof typeof NationNames] ?? nationParam,
       reputation: {
-        value: factionRep,
-        level: getRelationshipLevel(factionRep),
-        trend: 'stable',
-        weeklyChange: 0,
+        value: nationRep,
+        level: repLevel,
+        trend: nationRep > 0 ? 'positive' : 'stable',
       },
       allegiance: {
-        isAlly: player.faction === factionParam,
-        level: player.faction === factionParam ? player.factionLevel : null,
-        position: null,
-        joinedAt: null,
-        daysSinceJoining: null,
+        isAlly,
+        level: isAlly ? player.factionLevel : null,
+        titles: nationTags,
       },
-      privileges: {
-        available: [],
-        locked: [],
-        unlockConditions: {},
-      },
-      availableMissions: [],
-      keyFiguresAttitude: [],
-      contributions: {
-        total: 0,
-        byType: {},
-        recentActions: [],
-      },
+      milestones,
+      nextMilestone: nextMilestone ?? null,
+      keyFiguresAttitude: keyFigures,
+      recentActions: recentNationActions,
     }, requestId));
   } catch (err) {
     console.error('[Reputation Error]', err);
@@ -214,7 +253,7 @@ router.get('/:faction/reputation', async (req: Request, res: Response): Promise<
   }
 });
 
-// GET /v1/factions/reputation - 获取玩家所有阵营声望
+// GET /v1/nations/reputation - 获取玩家所有国家声望
 router.get('/reputation', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
@@ -225,62 +264,62 @@ router.get('/reputation', async (req: Request, res: Response): Promise<void> => 
   }
 
   try {
-    const result = await getPlayerFactionReputation(playerId);
+    const result = await getPlayerNationReputation(playerId);
     res.json(createSuccessResponse(result, requestId));
   } catch (err) {
-    console.error('[Faction Reputation Error]', err);
-    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取阵营声望失败', requestId, undefined, true));
+    console.error('[Nation Reputation Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取国家声望失败', requestId, undefined, true));
   }
 });
 
-// GET /v1/factions/:id/members - 获取派系成员列表
+// GET /v1/nations/:id/members - 获取国家成员列表
 router.get('/:id/members', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
-  const factionParam = req.params['id'] ?? '';
+  const nationParam = req.params['id'] ?? '';
   const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100);
   const offset = parseInt(req.query['offset'] as string) || 0;
 
-  if (!isValidFaction(factionParam)) {
-    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的阵营ID', requestId));
+  if (!isValidNation(nationParam)) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的国家ID', requestId));
     return;
   }
 
   try {
-    const { members, total } = await getFactionMembers(factionParam, limit, offset);
+    const { members, total } = await getNationMembers(nationParam, limit, offset);
     res.json(createSuccessResponse({ members, total, pagination: { limit, offset, hasMore: offset + limit < total } }, requestId));
   } catch (err) {
-    console.error('[Faction Members Error]', err);
+    console.error('[Nation Members Error]', err);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取成员列表失败', requestId, undefined, true));
   }
 });
 
-// GET /v1/factions/rankings - 获取派系排行榜
+// GET /v1/nations/rankings - 获取国家排行榜
 router.get('/rankings', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const limit = Math.min(parseInt(req.query['limit'] as string) || 100, 200);
 
   try {
-    const { rankings } = await getFactionRankings(limit);
+    const { rankings } = await getNationRankings(limit);
     res.json(createSuccessResponse({ rankings }, requestId));
   } catch (err) {
-    console.error('[Faction Rankings Error]', err);
+    console.error('[Nation Rankings Error]', err);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取排行榜失败', requestId, undefined, true));
   }
 });
 
-// POST /v1/factions/:id/interact - 与派系互动（增减声誉）
+// POST /v1/nations/:id/interact - 与国家互动（增减声誉）
 router.post('/:id/interact', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const factionParam = req.params['id'] ?? '';
+  const nationParam = req.params['id'] ?? '';
 
   if (!playerId) {
     res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
     return;
   }
 
-  if (!isValidFaction(factionParam)) {
-    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的阵营ID', requestId));
+  if (!isValidNation(nationParam)) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的国家ID', requestId));
     return;
   }
 
@@ -291,11 +330,11 @@ router.post('/:id/interact', async (req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const result = await interactWithFaction(playerId, factionParam, delta, reason);
+    const result = await interactWithNation(playerId, nationParam, delta, reason);
     res.json(createSuccessResponse(result, requestId));
   } catch (err) {
-    console.error('[Faction Interact Error]', err);
-    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '派系互动失败', requestId, undefined, true));
+    console.error('[Nation Interact Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '国家互动失败', requestId, undefined, true));
   }
 });
 

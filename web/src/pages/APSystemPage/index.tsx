@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { actionApi } from '../../services'
 import { usePlayerStore, type SkillId } from '../../stores/playerStore'
 import { UserAvatarMenu } from '../../components'
+import { useTranslation } from 'react-i18next'
 
 // 行动分类颜色
 const categoryColors: Record<string, string> = {
@@ -14,10 +15,10 @@ const categoryColors: Record<string, string> = {
 }
 
 const categoryLabels: Record<string, string> = {
-  growth: '成长',
-  resource: '资源',
-  social: '社交',
-  event: '事件',
+  growth: 'action_categories.growth',
+  resource: 'action_categories.resource',
+  social: 'action_categories.social',
+  event: 'action_categories.event',
 }
 
 const categoryIcons: Record<string, string> = {
@@ -51,7 +52,7 @@ interface APStatus {
 }
 
 // AP状态卡片
-function APStatusBar({ status, playerLevel }: { status: APStatus | null; playerLevel: number }) {
+function APStatusBar({ status, playerLevel, t }: { status: APStatus | null; playerLevel: number; t: (key: string) => string }) {
   if (!status) return null
 
   const calculatedMax = getMaxAP(playerLevel)
@@ -60,7 +61,7 @@ function APStatusBar({ status, playerLevel }: { status: APStatus | null; playerL
   return (
     <div className="card-modern mb-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)] font-display">【行动点数 AP】</h3>
+        <h3 className="text-sm font-medium text-[var(--text-secondary)] font-display">{t('ap_system.apTitle')}</h3>
         <span className="text-lg font-bold text-[var(--accent-purple)] font-display">
           {status.current}/{status.max}
         </span>
@@ -78,20 +79,21 @@ function APStatusBar({ status, playerLevel }: { status: APStatus | null; playerL
       </div>
 
       <div className="flex justify-between text-xs text-[var(--text-muted)]">
-        <span>已消耗: {status.consumed}</span>
-        <span>可用: {status.current}</span>
-        {status.resetTime && <span>重置: {status.resetTime}</span>}
+        <span>{t('ap_system.consumed')} {status.consumed}</span>
+        <span>{t('ap_system.available')} {status.current}</span>
+        {status.resetTime && <span>{t('ap_system.reset')} {status.resetTime}</span>}
       </div>
     </div>
   )
 }
 
 // 行动卡片
-function ActionCard({ action, onExecute, isExecuting, availableAP }: {
+function ActionCard({ action, onExecute, isExecuting, availableAP, t }: {
   action: ActionData
   onExecute: (type: string, targetId?: string, parameters?: Record<string, unknown>) => void
   isExecuting: boolean
   availableAP: number
+  t: (key: string) => string
 }) {
   const category = action.category || 'growth'
   const isDisabled = action.apCost > availableAP
@@ -117,7 +119,7 @@ function ActionCard({ action, onExecute, isExecuting, availableAP }: {
                 category === 'social' ? 'tag-success' :
                 'tag-danger'
               }`}>
-                {categoryLabels[category]}
+                {t(categoryLabels[category])}
               </span>
             </div>
             <p className="text-xs text-[var(--text-secondary)] mt-1">{action.description}</p>
@@ -128,7 +130,7 @@ function ActionCard({ action, onExecute, isExecuting, availableAP }: {
             -{action.apCost} AP
           </span>
           {isExecuting && (
-            <p className="text-xs text-[var(--text-muted)] mt-1">执行中...</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">{t('ap_system.executing')}</p>
           )}
         </div>
       </div>
@@ -137,7 +139,7 @@ function ActionCard({ action, onExecute, isExecuting, availableAP }: {
 }
 
 // 执行结果弹窗
-function ExecuteResultModal({ result, onClose }: { result: { success: boolean; message: string; rewards?: Record<string, unknown> } | null; onClose: () => void }) {
+function ExecuteResultModal({ result, onClose, t }: { result: { success: boolean; message: string; rewards?: Record<string, unknown> } | null; onClose: () => void; t: (key: string) => string }) {
   if (!result) return null
 
   return (
@@ -148,14 +150,14 @@ function ExecuteResultModal({ result, onClose }: { result: { success: boolean; m
             {result.success ? '✅' : '❌'}
           </span>
           <h3 className="text-lg font-bold font-display mb-2">
-            {result.success ? '【行动完成】' : '【执行失败】'}
+            {result.success ? t('ap_system.actionComplete') : t('ap_system.actionFailed')}
           </h3>
           <p className="text-sm text-[var(--text-secondary)] mb-4">{result.message}</p>
 
           {/* 奖励展示 */}
           {result.success && result.rewards && Object.keys(result.rewards).length > 0 && (
             <div className="bg-[var(--bg-secondary)] rounded-lg p-3 mb-4">
-              <p className="text-xs text-[var(--text-muted)] mb-2">获得奖励</p>
+              <p className="text-xs text-[var(--text-muted)] mb-2">{t('ap_system.reward')}</p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {Object.entries(result.rewards).map(([key, value]) => (
                   <span key={key} className="tag-modern tag-success">
@@ -167,7 +169,7 @@ function ExecuteResultModal({ result, onClose }: { result: { success: boolean; m
           )}
 
           <button onClick={onClose} className="btn-modern">
-            关闭
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -194,6 +196,7 @@ function HistoryItem({ record }: { record: { type: string; result: string; times
 export default function APSystemPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const playerLevel = player.level || 1
 
@@ -244,7 +247,7 @@ export default function APSystemPage() {
     onSuccess: (data) => {
       setExecuteResult({
         success: true,
-        message: data.message || '行动执行成功',
+        message: data.message || t('ap_system.executeSuccess'),
         rewards: data.rewards,
       })
       // 刷新AP状态和行动列表
@@ -255,7 +258,7 @@ export default function APSystemPage() {
     onError: (error: Error) => {
       setExecuteResult({
         success: false,
-        message: error.message || '执行失败，请重试',
+        message: error.message || t('ap_system.executeFailed'),
       })
     },
   })
@@ -275,7 +278,7 @@ export default function APSystemPage() {
   if (actionsLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <p className="text-[var(--text-secondary)]">加载行动数据...</p>
+        <p className="text-[var(--text-secondary)]">{t('common.loading')}</p>
       </div>
     )
   }
@@ -287,9 +290,9 @@ export default function APSystemPage() {
         <div className="container-modern flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={() => navigate('/dashboard')} className="btn-modern text-sm">
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
-            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">行动系统</h1>
+            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">{t('ap_system.title')}</h1>
           </div>
           <UserAvatarMenu />
         </div>
@@ -297,7 +300,7 @@ export default function APSystemPage() {
 
       <main className="container-modern py-6">
         {/* AP状态 */}
-        <APStatusBar status={apStatus} playerLevel={playerLevel} />
+        <APStatusBar status={apStatus} playerLevel={playerLevel} t={t} />
 
         {/* Tab切换 */}
         <div className="flex gap-2 mb-4">
@@ -309,7 +312,7 @@ export default function APSystemPage() {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
             }`}
           >
-            可用行动
+            {t('ap_system.availableActions')}
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -319,7 +322,7 @@ export default function APSystemPage() {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
             }`}
           >
-            历史记录
+            {t('ap_system.history')}
           </button>
         </div>
 
@@ -335,7 +338,7 @@ export default function APSystemPage() {
                     : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                 }`}
               >
-                全部
+                {t('common.all')}
               </button>
               {Object.entries(categoryLabels).map(([key, label]) => (
                 <button
@@ -347,7 +350,7 @@ export default function APSystemPage() {
                       : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                   }`}
                 >
-                  {categoryIcons[key]} {label}
+                  {categoryIcons[key]} {t(label)}
                 </button>
               ))}
             </div>
@@ -362,13 +365,15 @@ export default function APSystemPage() {
                     onExecute={handleExecute}
                     isExecuting={executeMutation.isPending}
                     availableAP={currentAP}
+                    t={t}
                   />
                 ))}
               </div>
             ) : (
-              <div className="card-modern-alt text-center py-8">
-                <p className="text-[var(--text-secondary)]">暂无可用行动</p>
-                <p className="text-sm text-[var(--text-muted)] mt-2">等待每日刷新或处理事件</p>
+              <div className="empty-state card-modern-alt">
+                <span className="empty-state-icon">🎯</span>
+                <p className="empty-state-title">{t('ap_system.noActions')}</p>
+                <p className="text-sm">{t('ap_system.noActionsHint')}</p>
               </div>
             )}
           </>
@@ -384,15 +389,16 @@ export default function APSystemPage() {
               ))}
             </div>
           ) : (
-            <div className="card-modern-alt text-center py-8">
-              <p className="text-[var(--text-secondary)]">暂无行动历史</p>
+            <div className="empty-state card-modern-alt">
+              <span className="empty-state-icon">📋</span>
+              <p className="empty-state-title">{t('ap_system.noHistory')}</p>
             </div>
           )
         )}
       </main>
 
       {/* 执行结果弹窗 */}
-      <ExecuteResultModal result={executeResult} onClose={() => setExecuteResult(null)} />
+      <ExecuteResultModal result={executeResult} onClose={() => setExecuteResult(null)} t={t} />
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { RiskLevel, Faction } from '../../stores/eventStore'
 
 interface ChoiceOptionProps {
@@ -56,6 +57,7 @@ export default function ChoiceOption({
   isSelected,
   onSelect,
 }: ChoiceOptionProps) {
+  const { t } = useTranslation()
   return (
     <div
       onClick={isUnlocked ? onSelect : undefined}
@@ -85,7 +87,7 @@ export default function ChoiceOption({
           {/* 技能需求 */}
           {skillRequirement && (
             <div className="text-sm text-purple-600 mb-2">
-              🔒 需要：{skillRequirement.skillName} L{skillRequirement.level}+
+              🔒 {t('choice.requirement', { skillName: skillRequirement.skillName, level: skillRequirement.level })}+
               {!isUnlocked && (
                 <span className="text-red-500 ml-2">({skillRequirement.reason})</span>
               )}
@@ -100,7 +102,7 @@ export default function ChoiceOption({
           {/* 代价 */}
           {costs && (
             <div className="mt-2 text-sm text-gray-600">
-              <span className="text-red-500">代价：</span>
+              <span className="text-red-500">{t('choice.cost')}</span>
               {costs.gold && <span className="ml-1">💰{costs.gold}</span>}
               {costs.influence && <span className="ml-1">⭐{costs.influence}</span>}
               <span className="ml-1 text-gray-500">{costs.description}</span>
@@ -110,7 +112,7 @@ export default function ChoiceOption({
           {/* 收益 */}
           {rewards && (
             <div className="mt-2 text-sm text-gray-600">
-              <span className="text-green-500">收益：</span>
+              <span className="text-green-500">{t('choice.benefit')}</span>
               {rewards.gold && <span className="ml-1">💰{rewards.gold}</span>}
               {rewards.influence && <span className="ml-1">⭐{rewards.influence}</span>}
               {rewards.items && rewards.items.length > 0 && (

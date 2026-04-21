@@ -1,53 +1,51 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { factionApi } from '../../services'
 
-export interface FactionData {
+export interface FactionCardData {
   id: string
   name: string
   icon: string
   color: string
-  bgColor: string
   description: string
-  reputation?: number  // -100 ~ +100
-  playerRank?: number
+  reputation?: number
   memberCount?: number
-  level?: number
-  levelName?: string
+  isJoined?: boolean
 }
 
 interface FactionCardProps {
-  faction: FactionData
+  faction: FactionCardData
   showProgress?: boolean
+  showJoin?: boolean
 }
 
-// 派系等级配置
 const factionLevels = [
-  { min: -100, name: '死敌', icon: '💀', color: 'text-[var(--accent-red)]' },
-  { min: -75, name: '敌对', icon: '⚔️', color: 'text-[var(--accent-red)]' },
-  { min: -50, name: '冷漠', icon: '❄️', color: 'text-[var(--text-muted)]' },
-  { min: -25, name: '疏远', icon: '😐', color: 'text-[var(--text-muted)]' },
-  { min: 0, name: '中立', icon: '🤝', color: 'text-[var(--text-secondary)]' },
-  { min: 25, name: '友好', icon: '😊', color: 'text-[var(--accent-green)]' },
-  { min: 50, name: '信任', icon: '🤝', color: 'text-[var(--accent-green)]' },
-  { min: 75, name: '尊敬', icon: '🙏', color: 'text-[var(--accent-gold)]' },
-  { min: 90, name: '盟友', icon: '⭐', color: 'text-[var(--accent-gold)]' },
+  { min: -100, name: '死敌', color: 'text-[var(--accent-red)]' },
+  { min: -75, name: '敌对', color: 'text-[var(--accent-red)]' },
+  { min: -50, name: '冷漠', color: 'text-[var(--text-muted)]' },
+  { min: -25, name: '疏远', color: 'text-[var(--text-muted)]' },
+  { min: 0, name: '中立', color: 'text-[var(--text-secondary)]' },
+  { min: 25, name: '友好', color: 'text-[var(--accent-green)]' },
+  { min: 50, name: '信任', color: 'text-[var(--accent-green)]' },
+  { min: 75, name: '尊敬', color: 'text-[var(--accent-gold)]' },
+  { min: 90, name: '盟友', color: 'text-[var(--accent-gold)]' },
 ]
 
-function getLevelForReputation(rep: number) {
+function getLevel(rep: number) {
   let result = factionLevels[0]
   for (const level of factionLevels) {
-    if (rep >= level.min) {
-      result = level
-    }
+    if (rep >= level.min) result = level
   }
   return result
 }
 
-export default function FactionCard({ faction, showProgress = false }: FactionCardProps) {
+export default function FactionCard({ faction, showProgress = false, showJoin = false }: FactionCardProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
+  const [isJoined, setIsJoined] = useState(faction.isJoined ?? false)
   const reputation = faction.reputation ?? 0
-  const level = getLevelForReputation(reputation)
-
-  // 声誉进度条百分比 (-100 ~ +100 → 0 ~ 100%)
+  const level = getLevel(reputation)
   const progressPercent = ((reputation + 100) / 200) * 100
 
   return (
@@ -56,60 +54,50 @@ export default function FactionCard({ faction, showProgress = false }: FactionCa
       style={{ borderColor: faction.color + '60' }}
       onClick={() => navigate(`/factions/${faction.id}`)}
     >
-      {/* 派系头部 */}
-      <div className="flex items-center gap-3 mb-3">
-        <span className="text-3xl">{faction.icon}</span>
-        <div className="flex-1">
-          <h3 className="font-bold text-[var(--text-primary)] font-display" style={{ color: faction.color }}>
-            {faction.name}
-          </h3>
-          {level && (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{faction.icon}</span>
+          <div>
+            <h3 className="font-bold text-[var(--text-primary)] font-display" style={{ color: faction.color }}>
+              {faction.name}
+            </h3>
             <div className="flex items-center gap-1 mt-1">
-              <span className="text-sm">{level.icon}</span>
-              <span className={`text-xs font-medium font-display ${level.color}`}>
-                {level.name}
-              </span>
+              <span className={`text-xs font-medium font-display ${level.color}`}>{level.name}</span>
+              {isJoined && <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--accent-green)]/20 text-[var(--accent-green)]">{t('internalFactions.joined')}</span>}
             </div>
-          )}
-        </div>
-        {faction.playerRank && (
-          <div className="text-right">
-            <span className="text-xs text-[var(--text-muted)]">排名</span>
-            <span className="block text-lg font-bold text-[var(--accent-gold)] font-display">
-              #{faction.playerRank}
-            </span>
           </div>
+        </div>
+        {faction.memberCount !== undefined && (
+          <span className="text-xs text-[var(--text-muted)]">{'\ud83d\udc65'} {faction.memberCount}</span>
         )}
       </div>
-
-      {/* 描述 */}
-      <p className="text-xs text-[var(--text-secondary)] mb-3">{faction.description}</p>
-
-      {/* 声誉进度条 */}
+      <p className="text-xs text-[var(--text-secondary)] mt-2">{faction.description}</p>
       {showProgress && (
-        <div>
+        <div className="mt-3">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-[var(--text-muted)]">声誉</span>
-            <span className="font-medium font-display" style={{ color: faction.color }}>
-              {reputation}/100
-            </span>
+            <span className="text-[var(--text-muted)]">{t('internalFactions.reputation')}</span>
+            <span className="font-bold font-display">{reputation}/100</span>
           </div>
           <div className="progress-modern">
-            <div
-              className="progress-fill transition-all duration-500"
-              style={{
-                width: `${progressPercent}%`,
-                backgroundColor: faction.color
-              }}
-            />
+            <div className="progress-fill transition-all duration-500" style={{ width: `${progressPercent}%`, backgroundColor: faction.color }} />
           </div>
         </div>
       )}
-
-      {/* 成员数 */}
-      {faction.memberCount !== undefined && (
-        <div className="mt-2 text-xs text-[var(--text-muted)]">
-          <span>👥 {faction.memberCount} 成员</span>
+      {showJoin && (
+        <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+          {!isJoined ? (
+            <button className="btn-modern text-xs" onClick={async () => {
+              try { await factionApi.joinFaction(faction.id); setIsJoined(true) } catch {}
+            }}>
+              {t('internalFactions.join')}
+            </button>
+          ) : (
+            <button className="btn-modern text-xs" onClick={async () => {
+              try { await factionApi.leaveFaction(); setIsJoined(false) } catch {}
+            }}>
+              {t('internalFactions.switch')}
+            </button>
+          )}
         </div>
       )}
     </div>

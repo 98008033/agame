@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '../../stores/playerStore'
 
 export default function UserAvatarMenu() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const setPlayer = usePlayerStore((s) => s.setPlayer)
   const [isOpen, setIsOpen] = useState(false)
@@ -54,7 +56,7 @@ export default function UserAvatarMenu() {
           {player.name?.charAt(0) || 'U'}
         </div>
         <div className="hidden sm:block">
-          <span className="text-[var(--text-primary)] font-medium">{player.name || '旅行者'}</span>
+          <span className="text-[var(--text-primary)] font-medium">{player.name || t('user_menu.traveler')}</span>
           <span className="text-[var(--accent-gold)] text-xs ml-1">Lv.{player.level || 1}</span>
         </div>
         {/* 下拉箭头 */}
@@ -70,7 +72,7 @@ export default function UserAvatarMenu() {
           <div className="px-4 py-3 border-b border-[rgba(255,255,255,0.1)]">
             <p className="text-[var(--text-primary)] font-medium">{player.name}</p>
             <p className="text-[var(--text-muted)] text-xs">
-              {player.faction || '无阵营'} · Lv.{player.level}
+              {player.faction ? t(`factions.${player.faction}`) : t('factions.noFaction')} · Lv.{player.level}
             </p>
           </div>
 
@@ -85,7 +87,7 @@ export default function UserAvatarMenu() {
               className="w-full px-4 py-2 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
             >
               <span>👤</span>
-              <span>个人信息</span>
+              <span>{t('user_menu.profile')}</span>
             </button>
 
             {/* 设置 */}
@@ -97,7 +99,7 @@ export default function UserAvatarMenu() {
               className="w-full px-4 py-2 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
             >
               <span>⚙️</span>
-              <span>设置</span>
+              <span>{t('user_menu.settings')}</span>
             </button>
 
             {/* 分隔线 */}
@@ -109,7 +111,7 @@ export default function UserAvatarMenu() {
               className="w-full px-4 py-2 text-left text-[var(--accent-red)] hover:bg-[var(--accent-red)]/10 transition-colors flex items-center gap-2"
             >
               <span>🚪</span>
-              <span>退出登录</span>
+              <span>{t('user_menu.logout')}</span>
             </button>
           </div>
         </div>

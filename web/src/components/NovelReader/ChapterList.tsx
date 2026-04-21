@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Chapter } from '../../stores/novelStore'
 
 interface ChapterListProps {
@@ -15,6 +16,7 @@ export default function ChapterList({
   isOpen,
   onClose,
 }: ChapterListProps) {
+  const { t } = useTranslation()
   if (!isOpen) return null
 
   return (
@@ -22,7 +24,7 @@ export default function ChapterList({
       <div className="paper-panel max-w-md w-full max-h-[70vh] overflow-hidden">
         {/* 标题 */}
         <div className="p-4 border-b-2 border-[var(--pixel-bg-mid)] flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[var(--pixel-text-dark)] pixel-font">章节目录</h2>
+          <h2 className="text-lg font-bold text-[var(--pixel-text-dark)] pixel-font">{t('novel_reader.chapterDirectory')}</h2>
           <button
             onClick={onClose}
             className="text-[var(--pixel-bg-mid)] hover:text-[var(--pixel-text-dark)] text-xl"
@@ -46,11 +48,11 @@ export default function ChapterList({
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium text-[var(--pixel-text-dark)] pixel-font">
-                  第{chapter.number}回 · {chapter.title}
+                  {t('novel_reader.chapterTitle', { number: chapter.number, title: chapter.title })}
                 </span>
-                <span className="text-sm text-[var(--pixel-bg-mid)]">第{chapter.day}日</span>
+                <span className="text-sm text-[var(--pixel-bg-mid)]">{t('novel_reader.chapterDay', { day: chapter.day })}</span>
               </div>
-              <p className="text-sm text-[var(--pixel-bg-mid)] mt-1">{chapter.wordCount}字</p>
+              <p className="text-sm text-[var(--pixel-bg-mid)] mt-1">{t('novel_reader.wordCount', { count: chapter.wordCount })}</p>
             </button>
           ))}
         </div>

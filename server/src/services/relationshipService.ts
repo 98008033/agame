@@ -347,7 +347,7 @@ export async function processRelationshipEvents(): Promise<{
     // 根据事件类型确定影响值
     let impact = 0;
     switch (event.category) {
-      case 'faction_invite':
+      case 'nation_invite':
         impact = 10;
         break;
       case 'personal_conflict':

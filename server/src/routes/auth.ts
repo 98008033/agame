@@ -9,11 +9,11 @@ import { generateToken, generateRefreshToken, verifyRefreshToken } from '../midd
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 import {
   DEFAULT_PLAYER_ATTRIBUTES,
-  DEFAULT_FACTION_REPUTATION,
+  DEFAULT_NATION_REPUTATION,
   DEFAULT_PLAYER_RESOURCES,
   DEFAULT_PLAYER_LOCATION,
   DEFAULT_SKILL_SET,
-  isValidFaction,
+  isValidNation,
 } from '../types/game.js';
 import { safeJsonStringify } from '../utils/index.js';
 
@@ -93,7 +93,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     // 创建玩家
     const playerId = `player_${uuidv4().substring(0, 8)}`;
     const playerName = name || username;
-    const playerFaction = startingFaction && isValidFaction(startingFaction)
+    const playerFaction = startingFaction && isValidNation(startingFaction)
       ? startingFaction
       : 'border';
 
@@ -103,7 +103,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
     };
 
     const initialReputation = {
-      ...DEFAULT_FACTION_REPUTATION,
+      ...DEFAULT_NATION_REPUTATION,
       [playerFaction]: 20,
     };
 
@@ -283,7 +283,7 @@ router.post('/guest', async (req: Request, res: Response): Promise<void> => {
 
   // 游客模式：允许不传name，使用默认名称
   const playerName = name || `旅行者_${Math.floor(Math.random() * 10000)}`;
-  const playerFaction = startingFaction && isValidFaction(startingFaction)
+  const playerFaction = startingFaction && isValidNation(startingFaction)
     ? startingFaction
     : 'border';
 
@@ -300,7 +300,7 @@ router.post('/guest', async (req: Request, res: Response): Promise<void> => {
 
     // 创建初始声望
     const initialReputation = {
-      ...DEFAULT_FACTION_REPUTATION,
+      ...DEFAULT_NATION_REPUTATION,
       [playerFaction]: 20,
     };
 

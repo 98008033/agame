@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { socialClassConfig, type SocialClass } from '../../stores/playerStore'
 
 /**
@@ -15,13 +16,14 @@ interface SocialClassProgressBarProps {
 const classOrder: SocialClass[] = ['commoner', 'gentry', 'noble', 'royalty']
 
 const classRequirements: Record<string, { label: string; level: number; influence: number; factionLevel?: string }> = {
-  commoner: { label: '平民', level: 1, influence: 0 },
-  gentry: { label: '绅士', level: 5, influence: 50 },
-  noble: { label: '贵族', level: 10, influence: 200, factionLevel: 'member' },
-  royalty: { label: '王族', level: 20, influence: 500, factionLevel: 'leader' },
+  commoner: { label: 'social_class.classes.commoner', level: 1, influence: 0 },
+  gentry: { label: 'social_class.classes.gentleman', level: 5, influence: 50 },
+  noble: { label: 'social_class.classes.noble', level: 10, influence: 200, factionLevel: 'member' },
+  royalty: { label: 'social_class.classes.royal', level: 20, influence: 500, factionLevel: 'leader' },
 }
 
 export default function SocialClassProgressBar({ currentClass, level, influence, factionLevel }: SocialClassProgressBarProps) {
+  const { t } = useTranslation()
   const currentIndex = classOrder.indexOf(currentClass)
   const nextClass = classOrder[currentIndex + 1]
   const nextReq = nextClass ? classRequirements[nextClass] : null
@@ -38,14 +40,14 @@ export default function SocialClassProgressBar({ currentClass, level, influence,
 
   return (
     <div className="card-modern">
-      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【社会阶层】</h3>
+      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">{t('social_class.title')}</h3>
 
       {/* 当前阶层 */}
       <div className="flex items-center gap-3 mb-4">
         <span className="text-2xl">{config.icon}</span>
         <div>
           <span className="text-lg font-bold text-[var(--accent-gold)] font-display">{config.name}</span>
-          <p className="text-xs text-[var(--text-muted)]">当前阶层</p>
+          <p className="text-xs text-[var(--text-muted)]">{t('social_class.currentClass')}</p>
         </div>
       </div>
 
@@ -55,7 +57,7 @@ export default function SocialClassProgressBar({ currentClass, level, influence,
           <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-2">
             <span>{config.name}</span>
             <span>→</span>
-            <span>{classRequirements[nextClass].label}</span>
+            <span>{t(classRequirements[nextClass].label)}</span>
           </div>
           <div className="progress-modern mb-2">
             <div
@@ -64,16 +66,16 @@ export default function SocialClassProgressBar({ currentClass, level, influence,
             />
           </div>
           <p className="text-xs text-[var(--text-muted)]">
-            等级: {level}/{nextReq.level} · 影响力: {influence}/{nextReq.influence}
+            {t('social_class.level')}: {level}/{nextReq.level} · {t('social_class.influence')}: {influence}/{nextReq.influence}
           </p>
           {nextReq.factionLevel && (
             <p className="text-xs text-[var(--text-muted)]">
-              阵营地位: {factionLevel} / {nextReq.factionLevel} (需要)
+              {t('social_class.factionStatus')}: {factionLevel} / {nextReq.factionLevel} ({t('social_class.required')})
             </p>
           )}
         </div>
       ) : (
-        <p className="text-sm text-[var(--accent-gold)] text-center">已达最高阶层</p>
+        <p className="text-sm text-[var(--accent-gold)] text-center">{t('social_class.maxClass')}</p>
       )}
     </div>
   )

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { usePlayerStore, socialClassConfig } from '../../stores/playerStore'
 import PlayerGrowth from '../../components/PlayerGrowth'
 import AnimatedNumber from '../../components/AnimatedNumber'
@@ -9,23 +10,23 @@ import { UserAvatarMenu } from '../../components'
 
 // 阵营信息
 const factionInfo = {
-  canglong: { name: '苍龙帝国', icon: '🐉', color: 'var(--faction-canglong)' },
-  shuanglang: { name: '霜狼联邦', icon: '🐺', color: 'var(--faction-shuanglang)' },
-  jinque: { name: '金雀花王国', icon: '🌸', color: 'var(--faction-jinque)' },
-  border: { name: '边境联盟', icon: '🏘️', color: 'var(--faction-border)' },
+  canglong: { name: '苍龙帝国', icon: '🐉', color: 'var(--faction-canglong)', nameI18n: 'factions.canglong' },
+  shuanglang: { name: '霜狼联邦', icon: '🐺', color: 'var(--faction-shuanglang)', nameI18n: 'factions.shuanglang' },
+  jinque: { name: '金雀花王国', icon: '🌸', color: 'var(--faction-jinque)', nameI18n: 'factions.jinque' },
+  border: { name: '边境联盟', icon: '🏘️', color: 'var(--faction-border)', nameI18n: 'factions.border' },
 }
 
 // 属性显示名称
 const attributeNames: Record<string, string> = {
-  physique: '体魄',
-  agility: '敏捷',
-  wisdom: '智慧',
-  willpower: '意志',
-  perception: '感知',
-  charisma: '魅力',
-  fame: '名望',
-  infamy: '恶名',
-  luck: '幸运',
+  physique: 'attributes.physique',
+  agility: 'attributes.agility',
+  wisdom: 'attributes.wisdom',
+  willpower: 'attributes.willpower',
+  perception: 'attributes.perception',
+  charisma: 'attributes.charisma',
+  fame: 'attributes.fame',
+  infamy: 'attributes.infamy',
+  luck: 'attributes.luck',
 }
 
 // 属性颜色映射 - 使用现代配色
@@ -43,14 +44,15 @@ const attributeColors: Record<string, string> = {
 
 // 阵营等级显示
 const factionLevelNames: Record<string, string> = {
-  neutral: '中立',
-  friendly: '友好',
-  member: '成员',
-  officer: '官员',
-  leader: '领袖',
+  neutral: 'faction_levels.neutral',
+  friendly: 'faction_levels.friendly',
+  member: 'faction_levels.member',
+  officer: 'faction_levels.officer',
+  leader: 'faction_levels.leader',
 }
 
 export default function StatusPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { player } = usePlayerStore()
   const [activeTab, setActiveTab] = useState<'status' | 'growth' | 'relationships'>('status')
@@ -99,20 +101,20 @@ export default function StatusPage() {
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
         <div className="card-modern p-8 text-center max-w-md">
           <span className="text-4xl mb-4 block">🎭</span>
-          <p className="text-[var(--text-primary)] mb-2 text-lg">你还没有角色</p>
-          <p className="text-[var(--text-muted)] mb-6">创建角色开始你的冒险之旅</p>
+          <p className="text-[var(--text-primary)] mb-2 text-lg">{t('common.noCharacter')}</p>
+          <p className="text-[var(--text-muted)] mb-6">{t('common.createCharacterHint')}</p>
           <button
             onClick={() => navigate('/character/create')}
             className="btn-modern mb-4"
             style={{ borderColor: 'var(--accent-purple)' }}
           >
-            创建角色
+            {t('common.createCharacter')}
           </button>
           <button
             onClick={() => navigate('/dashboard')}
             className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           >
-            返回主页
+            {t('common.backToDashboard')}
           </button>
         </div>
       </div>
@@ -135,9 +137,9 @@ export default function StatusPage() {
               onClick={() => navigate('/dashboard')}
               className="btn-modern text-sm"
             >
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
-            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">状态面板</h1>
+            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">{t('status.title')}</h1>
           </div>
           <UserAvatarMenu />
         </div>
@@ -154,7 +156,7 @@ export default function StatusPage() {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
             }`}
           >
-            基础状态
+            {t('status.basicStatus')}
           </button>
           <button
             onClick={() => setActiveTab('growth')}
@@ -164,7 +166,7 @@ export default function StatusPage() {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
             }`}
           >
-            角色发展
+            {t('status.characterDevelopment')}
           </button>
           <button
             onClick={() => setActiveTab('relationships')}
@@ -174,13 +176,13 @@ export default function StatusPage() {
                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
             }`}
           >
-            NPC关系
+            {t('status.npcRelationships')}
           </button>
           <button
             onClick={() => navigate('/journal')}
             className="px-4 py-2 rounded-lg font-medium bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
           >
-            个人日志
+            {t('status.personalJournal')}
           </button>
         </div>
 
@@ -192,13 +194,13 @@ export default function StatusPage() {
             <div>
               <h2 className="text-xl font-bold text-[var(--text-primary)] font-display">{player.name}</h2>
               <p className="text-sm text-[var(--text-secondary)]">
-                Lv.{player.level} · {player.age}岁
+                Lv.{player.level} · {t('status.yearsOld', { age: player.age })}
               </p>
             </div>
             {factionData && (
               <div className="text-right" style={{ color: factionData.color }}>
                 <span className="text-2xl">{factionData.icon}</span>
-                <span className="ml-2 font-medium font-display">{factionData.name}</span>
+                <span className="ml-2 font-medium font-display">{t(factionData.nameI18n)}</span>
               </div>
             )}
           </div>
@@ -206,13 +208,13 @@ export default function StatusPage() {
             <div className="mt-3 pt-3 border-t border-[rgba(255,255,255,0.1)]">
               <div className="flex justify-between">
                 <div>
-                  <span className="text-sm text-[var(--text-muted)]">阵营地位：</span>
+                  <span className="text-sm text-[var(--text-muted)]">{t('status.factionStatus')}</span>
                   <span className="text-sm font-medium text-[var(--text-primary)]">
-                    {factionLevelNames[player.factionLevel]}
+                    {t(factionLevelNames[player.factionLevel])}
                   </span>
                 </div>
                 <div>
-                  <span className="text-sm text-[var(--text-muted)]">社会阶层：</span>
+                  <span className="text-sm text-[var(--text-muted)]">{t('status.socialClass')}</span>
                   <span className="text-sm font-medium text-[var(--accent-gold)]">
                     {socialClassConfig[player.socialClass || 'commoner'].icon} {socialClassConfig[player.socialClass || 'commoner'].name}
                   </span>
@@ -228,7 +230,7 @@ export default function StatusPage() {
                   border: `1px solid ${factionData.color}40`
                 }}
               >
-                🏰 查看派系详情
+                🏰 {t('status.viewFactionDetail')}
               </button>
             </div>
           )}
@@ -236,13 +238,13 @@ export default function StatusPage() {
 
         {/* 资源 - 带进度条和动画 */}
         <div className="card-modern mb-4">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【资源】</h3>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">{t('status.resourcesTitle')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <AnimatedNumber
                 value={player.resources.gold}
                 prevValue={prevResources.gold}
-                label="金币"
+                label={t('common.gold')}
                 icon="💰"
                 colorClass="text-[var(--accent-gold)]"
               />
@@ -261,7 +263,7 @@ export default function StatusPage() {
               <AnimatedNumber
                 value={player.resources.influence}
                 prevValue={prevResources.influence}
-                label="影响力"
+                label={t('common.influence')}
                 icon="⭐"
                 colorClass="text-[var(--accent-purple)]"
               />
@@ -284,7 +286,7 @@ export default function StatusPage() {
 
         {/* 十维属性 - 带变化高亮 */}
         <div className="card-modern mb-4">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">【十维属性】</h3>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-4 font-display">{t('status.attributesTitle')}</h3>
           <div className="space-y-3">
             {Object.entries(player.attributes).map(([key, value]) => {
               const changeType = changedAttributes[key]
@@ -293,7 +295,7 @@ export default function StatusPage() {
 
               return (
                 <div key={key} className={`flex items-center rounded-lg transition-all duration-300 ${animClass}`}>
-                  <span className="w-12 text-sm text-[var(--text-secondary)]">{attributeNames[key]}</span>
+                  <span className="w-12 text-sm text-[var(--text-secondary)]">{t(attributeNames[key])}</span>
                   <div className="flex-1 mx-2 progress-modern">
                     <div
                       className="progress-fill"
@@ -329,7 +331,7 @@ export default function StatusPage() {
 
         {/* 经验值 */}
         <div className="card-modern mb-4">
-          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3 font-display">【等级进度】</h3>
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3 font-display">{t('status.levelProgress')}</h3>
           <div className="flex items-center">
             <span className="text-sm text-[var(--text-primary)]">Lv.{player.level}</span>
             <div className="flex-1 mx-2 progress-modern">
@@ -345,7 +347,7 @@ export default function StatusPage() {
         {/* 标签 */}
         {player.tags.length > 0 && (
           <div className="card-modern mb-4">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3 font-display">【标签】</h3>
+            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3 font-display">{t('status.tagsTitle')}</h3>
             <div className="flex flex-wrap gap-2">
               {player.tags.map((tag) => (
                 <span key={tag} className="tag-modern">
@@ -359,7 +361,7 @@ export default function StatusPage() {
         {/* 出身信息 */}
         {player.origin && (
           <div className="card-modern">
-            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">【出身】</h3>
+            <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">{t('status.originTitle')}</h3>
             <p className="text-[var(--text-primary)]">{player.origin}</p>
           </div>
         )}
@@ -376,6 +378,7 @@ export default function StatusPage() {
 
 // NPC关系Tab组件
 function NPCRelationshipsTab() {
+  const { t } = useTranslation()
   const [npcs, setNpcs] = useState<Array<{ id: string; name: string; faction?: string; role?: string; relationship?: { level: string; value: number } }>>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -402,21 +405,22 @@ function NPCRelationshipsTab() {
   }, [])
 
   if (isLoading) {
-    return <div className="text-center py-8 text-[var(--text-muted)]">加载中...</div>
+    return <div className="loading-state">{t('common.loading')}</div>
   }
 
   if (npcs.length === 0) {
     return (
-      <div className="card-modern-alt text-center py-8">
-        <p className="text-[var(--text-secondary)]">暂无NPC关系数据</p>
-        <p className="text-sm text-[var(--text-muted)] mt-2">与NPC互动后将会显示关系</p>
+      <div className="empty-state card-modern-alt">
+        <span className="empty-state-icon">👥</span>
+        <p className="empty-state-title">{t('status.noNpcData')}</p>
+        <p className="text-sm">{t('status.noNpcDataHint')}</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">【NPC关系详情】</h3>
+      <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">{t('status.npcDetailTitle')}</h3>
       {npcs.map((npc) => (
         <NPCRelationshipCard key={npc.id} npc={npc} />
       ))}

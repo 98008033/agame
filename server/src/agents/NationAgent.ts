@@ -8,7 +8,7 @@ import { AgentConfig, NationAgentOutput, AGENT_CONFIGS } from './types.js';
 import { promptBuilder } from './PromptBuilder.js';
 import { outputValidator } from './OutputValidator.js';
 import prisma from '../models/prisma.js';
-import { FactionNames } from '../types/game.js';
+import { NationNames } from '../types/game.js';
 
 export class NationAgent extends BaseAgent<NationAgentOutput> {
   private faction: 'canglong' | 'shuanglang' | 'jinque';
@@ -50,7 +50,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
     // 构建Prompt
     const messages = promptBuilder.buildNationAgentPrompt({
       agentName: this.config.name,
-      factionName: FactionNames[this.faction],
+      factionName: NationNames[this.faction],
       leaderName: leader.name,
       powerIndex: factionState.military + factionState.economy + factionState.stability,
       militaryStrength: factionState.military,
@@ -210,7 +210,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
 
     const lines: string[] = [];
     for (const [target, status] of Object.entries(relations)) {
-      lines.push(`${FactionNames[target as keyof typeof FactionNames] || target}: ${status}`);
+      lines.push(`${NationNames[target as keyof typeof NationNames] || target}: ${status}`);
     }
 
     return lines.join('\n') || '暂无外交关系';
@@ -235,7 +235,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
       await prisma.event.create({
         data: {
           id: `policy_${this.faction}_${Date.now().toString(36)}`,
-          title: `${FactionNames[this.faction]}${policy.type}决策`,
+          title: `${NationNames[this.faction]}${policy.type}决策`,
           description: policy.description,
           type: 'political_decision',
           category: 'crisis_response',
@@ -293,7 +293,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
 
     // 更新本阵营状态
     const factionData = factions[this.faction] || {
-      name: FactionNames[this.faction],
+      name: NationNames[this.faction],
       leader: '未知',
       military: 50,
       economy: 50,
@@ -329,7 +329,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
       }
     });
 
-    console.log(`[${this.config.id}] 已更新${FactionNames[this.faction]}阵营状态`);
+    console.log(`[${this.config.id}] 已更新${NationNames[this.faction]}阵营状态`);
   }
 
   /**
@@ -377,7 +377,7 @@ export class NationAgent extends BaseAgent<NationAgentOutput> {
     await prisma.event.create({
       data: {
         id: `diplomatic_${this.faction}_${decision.targetFaction}_${Date.now().toString(36)}`,
-        title: `${FactionNames[this.faction]}对${FactionNames[decision.targetFaction as keyof typeof FactionNames] || decision.targetFaction}的${this.getDiplomaticActionLabel(decision.action)}`,
+        title: `${NationNames[this.faction]}对${NationNames[decision.targetFaction as keyof typeof NationNames] || decision.targetFaction}的${this.getDiplomaticActionLabel(decision.action)}`,
         description: decision.reason,
         type: 'diplomatic_summit',
         category: 'crisis_response',

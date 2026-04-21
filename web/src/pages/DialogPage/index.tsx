@@ -1,26 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { npcDialogApi } from '../../services'
 import { UserAvatarMenu } from '../../components'
 
 // 关系等级显示
-const relationshipLevels: Record<string, { label: string; color: string }> = {
-  stranger: { label: '陌生人', color: 'var(--text-muted)' },
-  acquaintance: { label: '点头之交', color: 'var(--text-secondary)' },
-  friend: { label: '朋友', color: 'var(--accent-green)' },
-  close_friend: { label: '挚友', color: 'var(--accent-blue)' },
-  trusted: { label: '信任之人', color: 'var(--accent-purple)' },
-  rival: { label: '对手', color: 'var(--accent-red)' },
-  enemy: { label: '敌人', color: 'var(--status-danger)' },
+const relationshipLevels: Record<string, { color: string }> = {
+  stranger: { color: 'var(--text-muted)' },
+  acquaintance: { color: 'var(--text-secondary)' },
+  friend: { color: 'var(--accent-green)' },
+  close_friend: { color: 'var(--accent-blue)' },
+  trusted: { color: 'var(--accent-purple)' },
+  rival: { color: 'var(--accent-red)' },
+  enemy: { color: 'var(--status-danger)' },
 }
 
 // 阵营信息
-const factionInfo: Record<string, { name: string; icon: string; color: string }> = {
-  canglong: { name: '苍龙帝国', icon: '🐉', color: 'var(--faction-canglong)' },
-  shuanglang: { name: '霜狼联邦', icon: '🐺', color: 'var(--faction-shuanglang)' },
-  jinque: { name: '金雀花王国', icon: '🌸', color: 'var(--faction-jinque)' },
-  border: { name: '边境联盟', icon: '🏘️', color: 'var(--faction-border)' },
+const factionInfo: Record<string, { icon: string; color: string }> = {
+  canglong: { icon: '🐉', color: 'var(--faction-canglong)' },
+  shuanglang: { icon: '🐺', color: 'var(--faction-shuanglang)' },
+  jinque: { icon: '🌸', color: 'var(--faction-jinque)' },
+  border: { icon: '🏘️', color: 'var(--faction-border)' },
 }
 
 interface Message {
@@ -40,6 +41,7 @@ interface NPC {
 }
 
 export default function DialogPage() {
+  const { t } = useTranslation()
   const { npcId } = useParams<{ npcId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -94,7 +96,7 @@ export default function DialogPage() {
       }
     },
     onError: () => {
-      setError('无法开始对话，请稍后重试')
+      setError(t('dialog.cannotStart'))
     },
   })
 
@@ -114,7 +116,7 @@ export default function DialogPage() {
       }
     },
     onError: () => {
-      setError('发送消息失败，请稍后重试')
+      setError(t('dialog.sendFailed'))
     },
   })
 
@@ -194,23 +196,24 @@ export default function DialogPage() {
           <div className="container-modern flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button onClick={() => navigate('/dashboard')} className="btn-modern text-sm">
-                ↩ 返回
+                ↩ {t('common.back')}
               </button>
-              <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">NPC对话</h1>
+              <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">{t('dialog.title')}</h1>
             </div>
             <UserAvatarMenu />
           </div>
         </header>
 
         <main className="container-modern py-6">
-          <p className="text-[var(--text-secondary)] mb-4">选择一个NPC开始对话</p>
+          <p className="text-[var(--text-secondary)] mb-4">{t('dialog.selectNpcHint')}</p>
 
           {loadingNPCs ? (
-            <div className="text-center py-8 text-[var(--text-muted)] animate-pulse">加载NPC列表中...</div>
+            <div className="loading-state">{t('common.loadingNpcList')}</div>
           ) : !availableNPCs || availableNPCs.length === 0 ? (
-            <div className="card-modern-alt text-center py-8">
-              <p className="text-[var(--text-secondary)]">暂无可对话的NPC</p>
-              <p className="text-sm text-[var(--text-muted)] mt-2">探索更多地点以结识NPC</p>
+            <div className="empty-state card-modern-alt">
+              <span className="empty-state-icon">👤</span>
+              <p className="empty-state-title">{t('dialog.noNpcAvailable')}</p>
+              <p className="text-sm">{t('dialog.noNpcHint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -229,7 +232,7 @@ export default function DialogPage() {
                       <div>
                         <h3 className="font-bold text-[var(--text-primary)] font-display">{npc.name}</h3>
                         <p className="text-sm text-[var(--text-secondary)]">
-                          {faction && <span style={{ color: faction.color }}>{faction.icon} {faction.name}</span>}
+                          {faction && <span style={{ color: faction.color }}>{faction.icon} {t(`factions.${npc.faction}`)}</span>}
                           {npc.role && <span className="ml-2 text-[var(--text-muted)]">· {npc.role}</span>}
                         </p>
                       </div>
@@ -238,7 +241,7 @@ export default function DialogPage() {
                           className="tag-modern text-xs px-2 py-1"
                           style={{ color: relInfo.color }}
                         >
-                          {relInfo.label}
+                          {t(`relationships.${rel.level}`)}
                         </span>
                       )}
                     </div>
@@ -264,10 +267,10 @@ export default function DialogPage() {
         <div className="container-modern flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button onClick={handleBack} className="btn-modern text-sm">
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
             {loadingNPCInfo ? (
-              <span className="text-[var(--text-muted)] animate-pulse">加载中...</span>
+              <span className="text-[var(--text-muted)] animate-pulse">{t('common.loading')}</span>
             ) : (
               <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">
                 {npcInfo?.name || npcId}
@@ -281,7 +284,7 @@ export default function DialogPage() {
                 className="btn-modern text-sm"
                 style={{ borderColor: 'var(--accent-red)', color: 'var(--accent-red)' }}
               >
-                结束对话
+                {t('dialog.endDialog')}
               </button>
             )}
             <UserAvatarMenu />
@@ -297,14 +300,14 @@ export default function DialogPage() {
               <div>
                 <h2 className="text-lg font-bold text-[var(--text-primary)] font-display">{npcInfo.name}</h2>
                 <p className="text-sm text-[var(--text-secondary)] mt-1">
-                  {faction && <span style={{ color: faction.color }}>{faction.icon} {faction.name}</span>}
+                  {faction && <span style={{ color: faction.color }}>{faction.icon} {t(`factions.${npcInfo.faction}`)}</span>}
                   {npcInfo.role && <span className="ml-2 text-[var(--text-muted)]">· {npcInfo.role}</span>}
                 </p>
               </div>
               {relInfo && (
                 <div className="text-right">
                   <span className="text-sm font-medium" style={{ color: relInfo.color }}>
-                    {relInfo.label}
+                    {t(`relationships.${rel.level}`)}
                   </span>
                   {rel && (
                     <div className="progress-modern mt-1" style={{ width: '80px' }}>
@@ -332,18 +335,16 @@ export default function DialogPage() {
       {/* Messages Area */}
       <main className="flex-1 container-modern py-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
         {loadingHistory ? (
-          <div className="text-center py-8 text-[var(--text-muted)] animate-pulse">加载历史记录...</div>
+          <div className="loading-state">{t('common.loadingHistory')}</div>
         ) : !isInDialog && messages.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="text-4xl mb-4 block">💬</span>
-            <p className="text-[var(--text-secondary)] mb-4">
-              还没有开始对话
-            </p>
+          <div className="empty-state">
+            <span className="empty-state-icon">💬</span>
+            <p className="empty-state-title">{t('dialog.noDialogYet')}</p>
             <button
               onClick={handleStartDialog}
               className="btn-modern btn-primary"
             >
-              开始对话
+              {t('dialog.startDialog')}
             </button>
           </div>
         ) : (
@@ -372,7 +373,7 @@ export default function DialogPage() {
             {sendMessageMutation.isPending && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] px-4 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-muted)] rounded-bl-sm border border-[rgba(255,255,255,0.05)]">
-                  <span className="animate-pulse">正在思考...</span>
+                  <span className="animate-pulse">{t('common.thinking')}</span>
                 </div>
               </div>
             )}
@@ -396,7 +397,7 @@ export default function DialogPage() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isInDialog ? '输入消息...' : '请先开始对话'}
+            placeholder={isInDialog ? t('dialog.inputPlaceholder') : t('dialog.inputDisabledHint')}
             disabled={!isInDialog || sendMessageMutation.isPending}
             className="input-modern flex-1"
           />
@@ -405,7 +406,7 @@ export default function DialogPage() {
             disabled={!isInDialog || !inputValue.trim() || sendMessageMutation.isPending}
             className="btn-modern btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {sendMessageMutation.isPending ? '...' : '发送'}
+            {sendMessageMutation.isPending ? '...' : t('common.send')}
           </button>
         </div>
       </div>

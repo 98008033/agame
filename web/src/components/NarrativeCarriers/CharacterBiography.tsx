@@ -3,6 +3,7 @@
  * 重要NPC生平故事，关系变化记录
  */
 
+import { useTranslation } from 'react-i18next'
 import type { Faction } from '../../stores/playerStore'
 
 export interface BiographyEntry {
@@ -34,10 +35,10 @@ export interface CharacterBiographyProps {
 }
 
 const factionInfo = {
-  canglong: { name: '苍龙帝国', icon: '🐉', glow: 'magic-glow-green' },
-  shuanglang: { name: '霜狼联邦', icon: '🐺', glow: 'magic-glow-blue' },
-  jinque: { name: '金雀花王国', icon: '🌸', glow: 'magic-glow-gold' },
-  border: { name: '边境联盟', icon: '🏘️', glow: 'magic-glow-purple' },
+  canglong: { nameKey: 'factions.canglong', icon: '🐉', glow: 'magic-glow-green' },
+  shuanglang: { nameKey: 'factions.shuanglang', icon: '🐺', glow: 'magic-glow-blue' },
+  jinque: { nameKey: 'factions.jinque', icon: '🌸', glow: 'magic-glow-gold' },
+  border: { nameKey: 'factions.border', icon: '🏘️', glow: 'magic-glow-purple' },
 }
 
 export default function CharacterBiography({
@@ -51,6 +52,7 @@ export default function CharacterBiography({
   relationshipHistory,
   onClose,
 }: CharacterBiographyProps) {
+  const { t } = useTranslation()
   const faction = factionInfo[npcFaction]
 
   return (
@@ -63,18 +65,18 @@ export default function CharacterBiography({
 
           {/* 姓名 */}
           <h1 className="text-2xl font-bold text-[var(--pixel-text-dark)] pixel-font mt-2">
-            传记：{npcName}
+            {t('character_biography.title', { name: npcName })}
           </h1>
 
           {/* 身份 */}
           <p className="text-[var(--pixel-bg-mid)] mt-1">
-            {npcTitle} · {faction.name}
+            {npcTitle} · {t(faction.nameKey)}
           </p>
 
           {/* 年龄和状态 */}
           <div className="flex justify-center gap-4 mt-3">
             <span className="text-sm text-[var(--pixel-bg-mid)]">
-              {age}岁
+              {age}{t('character_biography.yearsOld')}
             </span>
             <span className={`text-sm px-2 py-1 rounded ${
               status === 'alive' ? 'bg-[var(--pixel-exp)] text-[var(--pixel-text-light)]' :
@@ -82,7 +84,7 @@ export default function CharacterBiography({
               status === 'dead' ? 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)]' :
               'bg-[var(--pixel-warning)] text-[var(--pixel-text-dark)]'
             }`}>
-              {status === 'alive' ? '在世' : status === 'dying' ? '垂危' : status === 'dead' ? '已故' : '流亡'}
+              {status === 'alive' ? t('character_biography.statuses.alive') : status === 'dying' ? t('character_biography.statuses.dying') : status === 'dead' ? t('character_biography.statuses.dead') : t('character_biography.statuses.exiled')}
             </span>
           </div>
 
@@ -91,7 +93,7 @@ export default function CharacterBiography({
             onClick={onClose}
             className="mt-4 pixel-btn text-sm"
           >
-            返回
+            {t('character_biography.back')}
           </button>
         </div>
       </header>
@@ -100,7 +102,7 @@ export default function CharacterBiography({
         {/* 生平故事 */}
         <section className="mb-6">
           <h2 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font mb-4 stone-panel p-2">
-            【生平故事】
+            {t('character_biography.backStory')}
           </h2>
 
           {biographyEntries.map((entry, index) => (
@@ -119,10 +121,10 @@ export default function CharacterBiography({
                     entry.importance === 'major' ? 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)]' :
                     'bg-[var(--pixel-bg-paper)] text-[var(--pixel-text-dark)]'
                   }`}>
-                    {entry.year}年
+                    {entry.year}{t('character_biography.year')}
                   </span>
                   {entry.importance === 'legendary' && (
-                    <span className="text-[var(--pixel-legendary)]">★ 传奇事件</span>
+                    <span className="text-[var(--pixel-legendary)]">★ {t('character_biography.legendaryEvent')}</span>
                   )}
                 </div>
               )}
@@ -148,13 +150,13 @@ export default function CharacterBiography({
         {/* 与你的关系变化 */}
         <section className="mb-6">
           <h2 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font mb-4 stone-panel p-2">
-            【与你的关系变化】
+            {t('character_biography.relationshipChange')}
           </h2>
 
           {relationshipHistory.length === 0 ? (
             <div className="paper-panel p-4 text-center">
               <p className="text-[var(--pixel-bg-mid)]">
-                你与{npcName}尚未有交集
+                {t('character_biography.noRelationship', { name: npcName })}
               </p>
             </div>
           ) : (
@@ -173,7 +175,7 @@ export default function CharacterBiography({
                     </span>
                   </div>
                   <span className="text-xs text-[var(--pixel-bg-mid)]">
-                    第{change.timestamp}日
+                    {t('character_biography.day', { day: change.timestamp })}
                   </span>
                 </div>
               ))}
@@ -185,11 +187,11 @@ export default function CharacterBiography({
         {status === 'alive' && (
           <section className="mb-6">
             <h2 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font mb-4 stone-panel p-2">
-              【未来篇章】
+              {t('character_biography.futureChapter')}
             </h2>
             <div className="paper-panel p-6 text-center">
               <p className="text-[var(--pixel-bg-mid)] italic">
-                "这个故事的后续，将由你来书写..."
+                {t('character_biography.futureMessage')}
               </p>
               <div className="mt-4">
                 <span className="text-2xl">📖</span>

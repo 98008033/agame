@@ -44,6 +44,17 @@ export {
 // 语言切换组件
 export { default as LanguageSwitcher } from './LanguageSwitcher'
 
+// Dashboard入口卡片
+export { default as DashboardEntryCard } from './DashboardEntryCard'
+
+// 国家卡片
+export { default as NationCard } from './NationCard'
+export type { NationData } from './NationCard'
+
+// 内部派系卡片
+export { default as FactionCard } from './FactionCard'
+export type { FactionCardData } from './FactionCard'
+
 export type {
   MorningNewsData,
   NewsSection,

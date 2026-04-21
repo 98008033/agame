@@ -285,41 +285,41 @@ export function calculateChildAttributes(
 }
 
 // ============================================
-// Faction Inheritance Rules
+// Nation Inheritance Rules
 // ============================================
 
-export interface FactionInheritanceRule {
-  faction: string;
+export interface NationInheritanceRule {
+  nation: string;
   primaryMethod: InheritanceType;
   secondaryMethod: InheritanceType;
   requiresElection: boolean;
   playerCanInfluence: boolean;
 }
 
-export const FactionInheritanceRules: Record<string, FactionInheritanceRule> = {
+export const NationInheritanceRules: Record<string, NationInheritanceRule> = {
   canglong: {
-    faction: 'canglong',
+    nation: 'canglong',
     primaryMethod: 'child',       // 嫡长子优先
     secondaryMethod: 'election',  // 科举选拔
     requiresElection: false,
     playerCanInfluence: true,
   },
   shuanglang: {
-    faction: 'shuanglang',
+    nation: 'shuanglang',
     primaryMethod: 'election',    // 实力推选
     secondaryMethod: 'crisis',    // 决斗/内战
     requiresElection: true,
     playerCanInfluence: true,
   },
   jinque: {
-    faction: 'jinque',
+    nation: 'jinque',
     primaryMethod: 'election',    // 金钱投票
     secondaryMethod: 'child',     // 家族继承
     requiresElection: true,
     playerCanInfluence: true,
   },
   border: {
-    faction: 'border',
+    nation: 'border',
     primaryMethod: 'election',    // 村民推选
     secondaryMethod: 'subordinate', // 自然更替
     requiresElection: false,

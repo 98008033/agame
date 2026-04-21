@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { playerApi, eventsApi } from '../../services'
+import { useTranslation } from 'react-i18next'
 
 type EventStatus = 'all' | 'pending' | 'completed' | 'expired'
 
@@ -27,6 +28,7 @@ interface EventRecord {
 }
 
 export default function EventHistoryPage() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'decisions' | 'events'>('decisions')
   const [eventStatusFilter, setEventStatusFilter] = useState<EventStatus>('all')
   const [page, setPage] = useState(0)
@@ -63,27 +65,27 @@ export default function EventHistoryPage() {
 
   // Category display mapping
   const categoryLabels: Record<string, string> = {
-    daily_life: '日常',
-    political_decision: '政治',
-    personal_event: '个人',
-    faction_conflict: '阵营冲突',
-    moral_dilemma: '道德困境',
-    survival: '生存',
-    exploration: '探索',
+    daily_life: t('event.categories.daily'),
+    political_decision: t('event.categories.political'),
+    personal_event: t('event.categories.personal'),
+    faction_conflict: t('event.categories.faction_conflict'),
+    moral_dilemma: t('event.categories.moral_dilemma'),
+    survival: t('event.categories.survival'),
+    exploration: t('event.categories.exploration'),
   }
 
   const typeLabels: Record<string, string> = {
-    resource_crisis: '资源危机',
-    faction_pressure: '阵营压力',
-    npc_interaction: 'NPC互动',
-    world_event: '世界事件',
-    personal_growth: '个人成长',
+    resource_crisis: t('event.types.resource_crisis'),
+    faction_pressure: t('event.types.faction_pressure'),
+    npc_interaction: t('event.types.npc_interaction'),
+    world_event: t('event.types.world_event'),
+    personal_growth: t('event.types.personal_growth'),
   }
 
   const statusLabels: Record<string, string> = {
-    pending: '待处理',
-    completed: '已完成',
-    expired: '已过期',
+    pending: t('common.pending'),
+    completed: t('common.completed'),
+    expired: t('common.expired'),
   }
 
   const statusColors: Record<string, string> = {
@@ -102,9 +104,9 @@ export default function EventHistoryPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[var(--pixel-bg-dark)] border-b border-[var(--pixel-bg-mid)] px-4 py-3">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-xl font-bold font-display text-[var(--accent-gold)]">事件历史</h1>
+          <h1 className="text-xl font-bold font-display text-[var(--accent-gold)]">{t('event_history.title')}</h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            追踪你的决策轨迹与事件影响
+            {t('event_history.subtitle')}
           </p>
         </div>
       </div>
@@ -120,7 +122,7 @@ export default function EventHistoryPage() {
                 : 'bg-[var(--pixel-bg-mid)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
-            决策历史 ({historyData?.statistics?.totalDecisions ?? 0})
+            {t('event_history.decisionHistory')} ({historyData?.statistics?.totalDecisions ?? 0})
           </button>
           <button
             onClick={() => { setActiveTab('events'); setPage(0) }}
@@ -130,7 +132,7 @@ export default function EventHistoryPage() {
                 : 'bg-[var(--pixel-bg-mid)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
-            事件列表 ({eventData?.total ?? 0})
+            {t('event_history.eventList')} ({eventData?.total ?? 0})
           </button>
         </div>
       </div>
@@ -148,7 +150,7 @@ export default function EventHistoryPage() {
                   : 'bg-[var(--pixel-bg-mid)] text-[var(--text-secondary)]'
               }`}
             >
-              {s === 'all' ? '全部' : statusLabels[s]}
+              {s === 'all' ? t('common.all') : statusLabels[s]}
             </button>
           ))}
         </div>
@@ -158,14 +160,12 @@ export default function EventHistoryPage() {
       <div className="max-w-4xl mx-auto px-4 py-4">
         {activeTab === 'decisions' && (
           loadingHistory ? (
-            <div className="flex justify-center py-20">
-              <span className="text-[var(--text-muted)]">加载中...</span>
-            </div>
+            <div className="loading-state">{t('common.loading')}</div>
           ) : decisions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <span className="text-4xl mb-4">📜</span>
-              <p className="text-[var(--text-muted)]">暂无决策记录</p>
-              <p className="text-xs text-[var(--text-muted)] mt-2">做出第一个选择后，这里会显示你的决策历史</p>
+            <div className="empty-state">
+              <span className="empty-state-icon">📜</span>
+              <p className="empty-state-title">{t('event_history.noRecords')}</p>
+              <p className="text-sm">{t('event_history.noRecordsHint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -174,7 +174,7 @@ export default function EventHistoryPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <h3 className="font-medium text-[var(--text-primary)] font-display">
-                        {d.eventTitle || '未命名事件'}
+                        {d.eventTitle || t('event_history.unnamedEvent')}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs px-2 py-0.5 rounded bg-[var(--pixel-bg-mid)] text-[var(--text-secondary)]">
@@ -196,7 +196,7 @@ export default function EventHistoryPage() {
                   {/* Choice made */}
                   <div className="mt-3 pl-3 border-l-2 border-[var(--accent-gold)]">
                     <p className="text-sm text-[var(--text-secondary)]">
-                      你的选择: <span className="text-[var(--text-primary)] font-medium">{d.choiceLabel}</span>
+                      {t('event_history.yourChoice')} <span className="text-[var(--text-primary)] font-medium">{d.choiceLabel}</span>
                     </p>
                   </div>
 
@@ -217,7 +217,7 @@ export default function EventHistoryPage() {
                     disabled={page === 0}
                     className="px-3 py-1 rounded text-sm bg-[var(--pixel-bg-mid)] disabled:opacity-30"
                   >
-                    上一页
+                    {t('common.prevPage')}
                   </button>
                   <span className="text-xs text-[var(--text-muted)]">
                     {page + 1} / {totalPages}
@@ -227,7 +227,7 @@ export default function EventHistoryPage() {
                     disabled={page >= totalPages - 1}
                     className="px-3 py-1 rounded text-sm bg-[var(--pixel-bg-mid)] disabled:opacity-30"
                   >
-                    下一页
+                    {t('common.nextPage')}
                   </button>
                 </div>
               )}
@@ -237,13 +237,11 @@ export default function EventHistoryPage() {
 
         {activeTab === 'events' && (
           loadingEvents ? (
-            <div className="flex justify-center py-20">
-              <span className="text-[var(--text-muted)]">加载中...</span>
-            </div>
+            <div className="loading-state">{t('common.loading')}</div>
           ) : events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <span className="text-4xl mb-4">📋</span>
-              <p className="text-[var(--text-muted)]">暂无事件</p>
+            <div className="empty-state">
+              <span className="empty-state-icon">📋</span>
+              <p className="empty-state-title">{t('event_history.noEvents')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -278,7 +276,7 @@ export default function EventHistoryPage() {
                     disabled={page === 0}
                     className="px-3 py-1 rounded text-sm bg-[var(--pixel-bg-mid)] disabled:opacity-30"
                   >
-                    上一页
+                    {t('common.prevPage')}
                   </button>
                   <span className="text-xs text-[var(--text-muted)]">
                     {page + 1} / {totalPages}
@@ -288,7 +286,7 @@ export default function EventHistoryPage() {
                     disabled={page >= totalPages - 1}
                     className="px-3 py-1 rounded text-sm bg-[var(--pixel-bg-mid)] disabled:opacity-30"
                   >
-                    下一页
+                    {t('common.nextPage')}
                   </button>
                 </div>
               )}

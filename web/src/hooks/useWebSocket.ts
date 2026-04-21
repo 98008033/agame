@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useWebSocketStore, createNotification, type WSMessage } from '../stores/websocketStore'
 import { useGameStore } from '../stores/gameStore'
 import { useEventStore } from '../stores/eventStore'
+import { usePlayerStore } from '../stores/playerStore'
 
 /**
  * WebSocket连接管理Hook

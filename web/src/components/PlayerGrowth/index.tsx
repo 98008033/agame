@@ -1,22 +1,24 @@
+import { useTranslation } from 'react-i18next'
 import { usePlayerStore, skillDefinitions, skillExpThresholds, socialClassConfig, type SkillId, type SkillCategory, type SocialClass } from '../../stores/playerStore'
 
 // 技能类别配置
 const categoryConfig: Record<SkillCategory, { name: string; icon: string; color: string }> = {
-  strategy: { name: '谋略线', icon: '🎯', color: 'var(--accent-purple)' },
-  combat: { name: '武力线', icon: '⚔️', color: 'var(--accent-red)' },
-  business: { name: '经营线', icon: '💰', color: 'var(--accent-gold)' },
-  general: { name: '通用', icon: '🏕️', color: 'var(--accent-green)' },
+  strategy: { name: 'social_class.skillLines.strategy', icon: '🎯', color: 'var(--accent-purple)' },
+  combat: { name: 'social_class.skillLines.combat', icon: '⚔️', color: 'var(--accent-red)' },
+  business: { name: 'social_class.skillLines.commerce', icon: '💰', color: 'var(--accent-gold)' },
+  general: { name: 'social_class.skillLines.general', icon: '🏕️', color: 'var(--accent-green)' },
 }
 
 // 社会阶层进度条
 function SocialTierBar() {
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const tiers: SocialClass[] = ['commoner', 'gentry', 'noble', 'royalty']
   const currentTierIndex = tiers.indexOf(player.socialClass || 'commoner')
 
   return (
     <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[rgba(255,255,255,0.1)]">
-      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">社会阶层</h3>
+      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">{t('social_class.title')}</h3>
       <div className="flex items-center gap-2 mb-3">
         {tiers.map((tier, idx) => {
           const config = socialClassConfig[tier]
@@ -40,10 +42,10 @@ function SocialTierBar() {
         })}
       </div>
       <p className="text-sm text-[var(--text-secondary)]">
-        当前: {socialClassConfig[player.socialClass || 'commoner'].name}
+        {t('social_class.current', { name: socialClassConfig[player.socialClass || 'commoner'].name })}
         {player.socialClass !== 'royalty' && (
           <span className="text-[var(--text-muted)] ml-2">
-            (下一阶需 Lv.{socialClassConfig[tiers[currentTierIndex + 1]].requirements.level})
+            ({t('social_class.nextHint', { level: socialClassConfig[tiers[currentTierIndex + 1]].requirements.level })})
           </span>
         )}
       </p>
@@ -53,6 +55,7 @@ function SocialTierBar() {
 
 // 单个技能卡片
 function SkillCard({ skillId }: { skillId: SkillId }) {
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const canUnlockSkill = usePlayerStore((s) => s.canUnlockSkill)
   const unlockSkill = usePlayerStore((s) => s.unlockSkill)
@@ -115,9 +118,9 @@ function SkillCard({ skillId }: { skillId: SkillId }) {
           <div className="flex justify-between text-xs text-[var(--text-muted)] mt-1">
             <span>{experience} EXP</span>
             {level < maxLevel ? (
-              <span>下一级: {nextLevelExp} EXP</span>
+              <span>{t('social_class.nextLevel', { exp: nextLevelExp })}</span>
             ) : (
-              <span className="text-[var(--accent-purple)]">已满级</span>
+              <span className="text-[var(--accent-purple)]">{t('social_class.maxLevel')}</span>
             )}
           </div>
         </div>
@@ -127,7 +130,7 @@ function SkillCard({ skillId }: { skillId: SkillId }) {
         <div className="mt-2 flex items-center justify-between">
           {prereqSkill && (
             <span className="text-xs text-[var(--text-muted)]">
-              需求: {prereqSkill.name} L{definition.prerequisiteLevel}
+              {t('social_class.skillRequirement', { name: prereqSkill.name, level: definition.prerequisiteLevel })}
             </span>
           )}
           {canUnlock && (
@@ -136,11 +139,11 @@ function SkillCard({ skillId }: { skillId: SkillId }) {
               className="btn-modern text-xs px-3 py-1"
               style={{ borderColor: category.color }}
             >
-              解锁
+              {t('social_class.unlock')}
             </button>
           )}
           {!canUnlock && prereqSkill && (
-            <span className="text-xs text-[var(--text-muted)]">未满足条件</span>
+            <span className="text-xs text-[var(--text-muted)]">{t('social_class.notMet')}</span>
           )}
         </div>
       )}
@@ -150,6 +153,7 @@ function SkillCard({ skillId }: { skillId: SkillId }) {
 
 // 技能路径卡片（显示一个类别的所有技能）
 function SkillPathSection({ category }: { category: SkillCategory }) {
+  const { t } = useTranslation()
   const config = categoryConfig[category]
   const skillsInCategory = skillDefinitions.filter((d) => d.category === category)
 
@@ -158,7 +162,7 @@ function SkillPathSection({ category }: { category: SkillCategory }) {
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{config.icon}</span>
         <h3 className="font-bold text-[var(--text-primary)]" style={{ color: config.color }}>
-          {config.name}
+          {t(config.name)}
         </h3>
       </div>
       <div className="space-y-2">
@@ -172,19 +176,20 @@ function SkillPathSection({ category }: { category: SkillCategory }) {
 
 // 成长时间线
 function MilestoneTimeline() {
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   // 基于玩家等级动态计算里程碑
   const milestones = [
-    { level: 1, title: '初入江湖', icon: '🌟' },
-    { level: 5, title: '崭露头角', icon: '⭐' },
-    { level: 10, title: '小有名气', icon: '🌟' },
-    { level: 15, title: '声名远扬', icon: '💫' },
-    { level: 20, title: '名震一方', icon: '✨' },
+    { level: 1, title: t('social_class.milestones.enter'), icon: '🌟' },
+    { level: 5, title: t('social_class.milestones.emerge'), icon: '⭐' },
+    { level: 10, title: t('social_class.milestones.famous'), icon: '🌟' },
+    { level: 15, title: t('social_class.milestones.renowned'), icon: '💫' },
+    { level: 20, title: t('social_class.milestones.legend'), icon: '✨' },
   ]
 
   return (
     <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[rgba(255,255,255,0.1)]">
-      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">成长里程碑</h3>
+      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">{t('social_class.growthMilestones')}</h3>
       <div className="space-y-2">
         {milestones.map((m, idx) => {
           const completed = player.level >= m.level
@@ -205,7 +210,7 @@ function MilestoneTimeline() {
                   {m.title}
                 </span>
                 {current && (
-                  <span className="text-xs text-[var(--accent-gold)] ml-2">当前</span>
+                  <span className="text-xs text-[var(--accent-gold)] ml-2">{t('social_class.current')}</span>
                 )}
               </div>
               <span className="text-xs text-[var(--text-muted)]">Lv.{m.level}</span>
@@ -219,6 +224,7 @@ function MilestoneTimeline() {
 
 // 当前目标（基于技能系统动态生成）
 function CurrentGoals() {
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const canUnlockSkill = usePlayerStore((s) => s.canUnlockSkill)
 
@@ -238,19 +244,19 @@ function CurrentGoals() {
 
   return (
     <div className="bg-[var(--bg-secondary)] rounded-xl p-4 border border-[rgba(255,255,255,0.1)]">
-      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">当前目标</h3>
+      <h3 className="text-lg font-bold text-[var(--text-primary)] mb-3">{t('social_class.currentGoal')}</h3>
       <ul className="space-y-2 text-sm">
         {unlockableSkills.length > 0 ? (
           unlockableSkills.map((skill) => (
             <li key={skill.id} className="flex items-center gap-2 text-[var(--text-secondary)]">
               <span className="text-[var(--accent-purple)]">•</span>
-              解锁技能: {skill.icon} {skill.name}
+              {t('social_class.unlockSkill', { name: `${skill.icon} ${skill.name}` })}
             </li>
           ))
         ) : (
           <li className="flex items-center gap-2 text-[var(--text-secondary)]">
             <span className="text-[var(--accent-green)]">•</span>
-            继续积累经验提升技能等级
+            {t('social_class.keepExp')}
           </li>
         )}
         {levelingSkills.map((s) => {
@@ -258,18 +264,18 @@ function CurrentGoals() {
           return def ? (
             <li key={s.skillId} className="flex items-center gap-2 text-[var(--text-secondary)]">
               <span className="text-[var(--accent-gold)]">•</span>
-              {def.icon} {def.name} 即将升级到 L{s.level + 1}
+              {def.icon} {def.name} {t('social_class.approachingLevel', { level: s.level + 1 })}
             </li>
           ) : null
         })}
         {player.socialClass !== 'royalty' && (
           <li className="flex items-center gap-2 text-[var(--text-secondary)]">
             <span className="text-[var(--accent-blue)]">•</span>
-            晋升到 {socialClassConfig[
+            {t('social_class.promoteTo', { name: socialClassConfig[
               ['commoner', 'gentry', 'noble', 'royalty'][
                 ['commoner', 'gentry', 'noble', 'royalty'].indexOf(player.socialClass || 'commoner') + 1
               ] as SocialClass
-            ].name}
+            ].name })}
           </li>
         )}
       </ul>
@@ -278,12 +284,13 @@ function CurrentGoals() {
 }
 
 export default function PlayerGrowth() {
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
 
   if (!player || !player.id) {
     return (
       <div className="text-center text-[var(--text-muted)] py-8">
-        请先创建角色查看成长路径
+        {t('social_class.noCharacterHint')}
       </div>
     )
   }
@@ -295,7 +302,7 @@ export default function PlayerGrowth() {
 
       {/* 三条人生线技能 */}
       <div className="mb-2">
-        <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3">【技能树】</h3>
+        <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3">{t('social_class.skillTreeTitle')}</h3>
       </div>
       <SkillPathSection category="strategy" />
       <SkillPathSection category="combat" />

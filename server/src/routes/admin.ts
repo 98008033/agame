@@ -16,11 +16,17 @@ const router = Router();
 const ADMIN_SECRET = process.env['ADMIN_SECRET'] || 'admin_secret_key_mvp';
 
 // 管理员认证中间件
+// 支持两种认证方式：
+// 1. X-Admin-Secret header (前端专用，与用户JWT完全隔离)
+// 2. Bearer token (兼容旧调用方式)
 function adminAuth(req: Request, res: Response, next: () => void): void {
+  const adminSecret = req.headers['x-admin-secret'] as string;
   const authHeader = req.headers['authorization'];
-  const adminToken = authHeader?.replace('Bearer ', '');
+  const bearerToken = authHeader?.replace('Bearer ', '');
 
-  if (!adminToken || adminToken !== ADMIN_SECRET) {
+  const token = adminSecret || bearerToken;
+
+  if (!token || token !== ADMIN_SECRET) {
     res.status(401).json(createErrorResponse(
       'UNAUTHORIZED',
       '管理员认证失败',

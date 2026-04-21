@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { ReadingSettings } from '../../stores/novelStore'
 
 interface ReadingToolbarProps {
@@ -11,16 +12,16 @@ type FontSizeOption = 'small' | 'medium' | 'large' | 'xlarge'
 type ThemeOption = 'light' | 'dark' | 'sepia'
 
 const fontSizeOptions: { value: FontSizeOption; label: string }[] = [
-  { value: 'small', label: '小' },
-  { value: 'medium', label: '中' },
-  { value: 'large', label: '大' },
-  { value: 'xlarge', label: '特大' },
+  { value: 'small', label: 'novel_reader.small' },
+  { value: 'medium', label: 'novel_reader.medium' },
+  { value: 'large', label: 'novel_reader.large' },
+  { value: 'xlarge', label: 'novel_reader.extraLarge' },
 ]
 
 const themeOptions: { value: ThemeOption; label: string }[] = [
-  { value: 'light', label: '日间' },
-  { value: 'dark', label: '夜间' },
-  { value: 'sepia', label: '羊皮' },
+  { value: 'light', label: 'novel_reader.daytime' },
+  { value: 'dark', label: 'novel_reader.night' },
+  { value: 'sepia', label: 'novel_reader.parchment' },
 ]
 
 export default function ReadingToolbar({
@@ -29,12 +30,13 @@ export default function ReadingToolbar({
   isBookmarked,
   onBookmarkToggle,
 }: ReadingToolbarProps) {
+  const { t } = useTranslation()
   return (
     <div className="fixed bottom-0 left-0 right-0 stone-panel z-50">
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* 字号选择 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">字号:</span>
+          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">{t('novel_reader.fontSize')}:</span>
           <div className="flex gap-1">
             {fontSizeOptions.map((option) => (
               <button
@@ -46,7 +48,7 @@ export default function ReadingToolbar({
                     : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
                 }`}
               >
-                {option.label}
+                {t(option.label)}
               </button>
             ))}
           </div>
@@ -54,7 +56,7 @@ export default function ReadingToolbar({
 
         {/* 主题选择 */}
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">主题:</span>
+          <span className="text-sm text-[var(--pixel-text-light)] pixel-font">{t('novel_reader.theme')}:</span>
           <div className="flex gap-1">
             {themeOptions.map((option) => (
               <button
@@ -66,7 +68,7 @@ export default function ReadingToolbar({
                     : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
                 }`}
               >
-                {option.label}
+                {t(option.label)}
               </button>
             ))}
           </div>
@@ -81,7 +83,7 @@ export default function ReadingToolbar({
               : 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] hover:bg-[var(--pixel-bg-dark)]'
           }`}
         >
-          {isBookmarked ? '📖 已收藏' : '📑 收藏'}
+          {isBookmarked ? `\u{1F4D6} ${t('novel_reader.favorited')}` : `\u{1F4D1} ${t('novel_reader.favorite')}`}
         </button>
       </div>
     </div>

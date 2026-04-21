@@ -3,6 +3,7 @@
  * 重大事件的长篇叙事，玩家可介入节点
  */
 
+import { useTranslation } from 'react-i18next'
 import type { EventChoice } from '../../stores/eventStore'
 
 export interface ScrollChapter {
@@ -41,6 +42,7 @@ export default function EventScroll({
   onPrevChapter,
   onClose,
 }: EventScrollProps) {
+  const { t } = useTranslation()
   const currentChapter = chapters[currentChapterIndex]
 
   return (
@@ -53,12 +55,12 @@ export default function EventScroll({
             onClick={onClose}
             className="text-[var(--pixel-text-light)] mb-2 pixel-font"
           >
-            ◀ 返回事件列表
+            ◀ {t('event_scroll.backToList')}
           </button>
 
           {/* 标题 */}
           <h1 className="text-xl font-bold text-[var(--pixel-text-light)] pixel-font text-center">
-            【事件长卷】{eventTitle}
+            {t('event_scroll.title', { title: eventTitle })}
           </h1>
 
           {/* 重要性标记 */}
@@ -68,7 +70,7 @@ export default function EventScroll({
                 ? 'bg-[var(--pixel-legendary)] text-[var(--pixel-text-light)] magic-glow-purple'
                 : 'bg-[var(--pixel-bg-paper)] text-[var(--pixel-text-dark)]'
             }`}>
-              {importance === 'critical' ? '★ 史诗事件' : '◆ 重要事件'}
+              {importance === 'critical' ? t('event_scroll.epic') : t('event_scroll.important')}
             </span>
           </div>
 
@@ -103,7 +105,7 @@ export default function EventScroll({
         <div className="paper-panel p-6 mb-6">
           {/* 章节标题 */}
           <h2 className="text-lg font-bold text-[var(--pixel-text-dark)] pixel-font mb-4 text-center">
-            第{currentChapterIndex + 1}章 · {currentChapter.title}
+            {t('event_scroll.return', { index: currentChapterIndex + 1, title: currentChapter.title })}
           </h2>
 
           <div className="pixel-divider mb-4" />
@@ -118,7 +120,7 @@ export default function EventScroll({
         {currentChapter.canIntervene && currentChapter.interventionPoint && (
           <div className="stone-panel p-4 mb-6 magic-glow-purple">
             <h3 className="text-lg font-bold text-[var(--pixel-text-light)] pixel-font mb-3 text-center">
-              ⚠️ 关键时刻
+              {t('event_scroll.keyMoment')}
             </h3>
             <p className="text-[var(--pixel-text-light)] text-center mb-4">
               {currentChapter.interventionPoint.description}
@@ -148,9 +150,9 @@ export default function EventScroll({
                       choice.riskLevel === 'medium' ? 'bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)]' :
                       'bg-[var(--pixel-exp)] text-[var(--pixel-text-light)]'
                     }`}>
-                      {choice.riskLevel === 'critical' ? '极险' :
-                       choice.riskLevel === 'high' ? '高风险' :
-                       choice.riskLevel === 'medium' ? '中风险' : '低风险'}
+                      {choice.riskLevel === 'critical' ? t('event_scroll.risk.critical') :
+                       choice.riskLevel === 'high' ? t('event_scroll.risk.high') :
+                       choice.riskLevel === 'medium' ? t('event_scroll.risk.medium') : t('event_scroll.risk.low')}
                     </span>
                   </div>
 
@@ -162,7 +164,7 @@ export default function EventScroll({
                   {/* 技能需求 */}
                   {choice.skillRequirement && !choice.isUnlocked && (
                     <p className="text-sm text-[var(--pixel-health)] mt-2">
-                      需要：{choice.skillRequirement.skillName} Lv.{choice.skillRequirement.level}
+                      {t('event_scroll.skillRequirement', { skillName: choice.skillRequirement.skillName, level: choice.skillRequirement.level })}
                       ({choice.skillRequirement.reason})
                     </p>
                   )}
@@ -171,12 +173,12 @@ export default function EventScroll({
                   <div className="flex gap-4 mt-2 text-xs">
                     {choice.costs && (
                       <div className="text-[var(--pixel-health)]">
-                        代价：{choice.costs.description}
+                        {t('event_scroll.cost', { description: choice.costs.description })}
                       </div>
                     )}
                     {choice.rewards && choice.isUnlocked && (
                       <div className="text-[var(--pixel-exp)]">
-                        收益：{choice.rewards.description}
+                        {t('event_scroll.benefit', { description: choice.rewards.description })}
                       </div>
                     )}
                   </div>
@@ -189,7 +191,7 @@ export default function EventScroll({
               onClick={() => onNextChapter()}
               className="w-full mt-4 pixel-btn text-center"
             >
-              继续观望（不介入）
+              {t('event_scroll.waitAndSee')}
             </button>
           </div>
         )}
@@ -202,14 +204,14 @@ export default function EventScroll({
               disabled={currentChapterIndex === 0}
               className={`pixel-btn ${currentChapterIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              ◀ 上章
+              ◀ {t('event_scroll.prevChapter')}
             </button>
             <button
               onClick={onNextChapter}
               disabled={currentChapterIndex === chapters.length - 1}
               className={`pixel-btn ${currentChapterIndex === chapters.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              下章 ▶
+              {t('event_scroll.nextChapter')} ▶
             </button>
           </div>
         )}
@@ -218,10 +220,10 @@ export default function EventScroll({
         {currentChapterIndex === chapters.length - 1 && !currentChapter.canIntervene && (
           <div className="paper-panel p-6 text-center">
             <h3 className="text-lg font-bold text-[var(--pixel-text-dark)] pixel-font mb-2">
-              【本卷终】
+              {t('event_scroll.endOfScroll')}
             </h3>
             <p className="text-[var(--pixel-bg-mid)] italic">
-              这段历史已被记录。你的选择将影响后世对此事的记述...
+              {t('event_scroll.endMessage')}
             </p>
           </div>
         )}

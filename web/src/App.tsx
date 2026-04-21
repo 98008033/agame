@@ -20,6 +20,7 @@ import AdminPage from './pages/AdminPage'
 import DeathNarrativePage from './pages/DeathNarrativePage'
 import EventHistoryPage from './pages/EventHistoryPage'
 import FactionPage from './pages/FactionPage'
+import NationPage from './pages/NationPage'
 import APSystemPage from './pages/APSystemPage'
 import DialogPage from './pages/DialogPage'
 import LegacyPage from './pages/LegacyPage'
@@ -111,6 +112,12 @@ export default function App() {
         } />
         <Route path="/factions/:id" element={
           <ProtectedRoute><FactionPage /></ProtectedRoute>
+        } />
+        <Route path="/nations" element={
+          <ProtectedRoute><NationPage /></ProtectedRoute>
+        } />
+        <Route path="/nations/:id" element={
+          <ProtectedRoute><NationPage /></ProtectedRoute>
         } />
         <Route path="/actions" element={
           <ProtectedRoute><APSystemPage /></ProtectedRoute>

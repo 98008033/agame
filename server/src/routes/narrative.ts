@@ -317,7 +317,7 @@ function generateMilestones(
 ): Array<{ title: string; description: string }> {
   const milestones: Array<{ title: string; description: string }> = [];
 
-  // Faction choice milestone
+  // Nation choice milestone
   const factionEvent = timeline.find(e => e.category === '效忠选择');
   if (factionEvent) {
     milestones.push({

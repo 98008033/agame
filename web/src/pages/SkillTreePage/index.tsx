@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { playerApi } from '../../services'
-import { UserAvatarMenu } from '../../components'
+import { UserAvatarMenu, LanguageSwitcher } from '../../components'
 
 // 技能线颜色
 const skillLineColors: Record<string, string> = {
@@ -11,48 +12,48 @@ const skillLineColors: Record<string, string> = {
   survival: '#8D6E63',
 }
 
-const skillLineNames: Record<string, string> = {
-  strategy: '谋略',
-  combat: '武力',
-  commerce: '经营',
-  survival: '生存',
+const skillLineNameKeys: Record<string, string> = {
+  strategy: 'skilltree.strategy',
+  combat: 'skilltree.combat',
+  commerce: 'skilltree.commerce',
+  survival: 'skilltree.survival',
 }
 
-const categoryNames: Record<string, string> = {
-  all: '全部',
-  strategy: '谋略',
-  combat: '武力',
-  commerce: '经营',
-  survival: '生存',
-}
+const categoryKeys: Array<{ key: string; tKey: string }> = [
+  { key: 'all', tKey: 'common.all' },
+  { key: 'strategy', tKey: 'skilltree.strategy' },
+  { key: 'combat', tKey: 'skilltree.combat' },
+  { key: 'commerce', tKey: 'skilltree.commerce' },
+  { key: 'survival', tKey: 'skilltree.survival' },
+]
 
-// 技能树布局定义
+// 技能树布局定义 - 水平展开
 interface SkillNodeLayout {
   id: string
   x: number
   y: number
 }
 
-const NODE_W = 140
-const NODE_H = 60
+const NODE_W = 180
+const NODE_H = 80
 
 function getLayout(): SkillNodeLayout[] {
-  // 4 rows: survival(root) -> tier1(3) -> tier2(3)
-  const gap = 200
-  const startY = 40
-  const rowH = 160
+  // 3 rows, wider horizontal spread for web-friendly layout
+  const startY = 70
+  const rowH = 220
+  const colGap = 260
 
   return [
     // Row 0: Survival (center)
-    { id: 'survival', x: 370, y: startY },
-    // Row 1: Tier 1
-    { id: 'strategy.intelligenceAnalysis', x: 170, y: startY + rowH },
-    { id: 'combat.combatTechnique', x: 370, y: startY + rowH },
-    { id: 'commerce.trade', x: 570, y: startY + rowH },
+    { id: 'survival', x: 410, y: startY },
+    // Row 1: Tier 1 - wider spacing
+    { id: 'strategy.intelligenceAnalysis', x: 150, y: startY + rowH },
+    { id: 'combat.combatTechnique', x: 410, y: startY + rowH },
+    { id: 'commerce.trade', x: 670, y: startY + rowH },
     // Row 2: Tier 2
-    { id: 'strategy.politicalManipulation', x: 170, y: startY + rowH * 2 },
-    { id: 'combat.militaryCommand', x: 370, y: startY + rowH * 2 },
-    { id: 'commerce.industryManagement', x: 570, y: startY + rowH * 2 },
+    { id: 'strategy.politicalManipulation', x: 150, y: startY + rowH * 2 },
+    { id: 'combat.militaryCommand', x: 410, y: startY + rowH * 2 },
+    { id: 'commerce.industryManagement', x: 670, y: startY + rowH * 2 },
   ]
 }
 
@@ -104,6 +105,7 @@ interface SkillDetail {
 
 export default function SkillTreePage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [skills, setSkills] = useState<SkillData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState<string>('all')
@@ -153,7 +155,7 @@ export default function SkillTreePage() {
         loadDetail(selectedSkill)
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '解锁失败'
+      const message = err instanceof Error ? err.message : t('skilltree.unlockFailed')
       setUnlockMsg(message)
     } finally {
       setIsUnlocking(false)
@@ -173,58 +175,46 @@ export default function SkillTreePage() {
     return '#4A4A5A'
   }
 
-  const getConnectionColor = (fromId: string, toId: string) => {
-    const from = skills.find(s => s.id === fromId)
-    const to = skills.find(s => s.id === toId)
-    if (!from || !to) return '#4A4A5A'
-    if (from.unlocked && to.unlocked) return skillLineColors[from.category] || '#4A4A5A'
-    if (from.unlocked && to.canUnlock) return '#FFB74D'
-    return '#4A4A5A'
-  }
-
-  const getConnectionOpacity = (fromId: string, toId: string) => {
-    const from = skills.find(s => s.id === fromId)
-    if (!from) return 0.2
-    if (from.unlocked) return 1
-    return 0.3
-  }
+  const selectedSkillData = skills.find(s => s.id === selectedSkill)
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <div className="text-[var(--text-muted)] text-lg">加载技能树中...</div>
+        <div className="text-[var(--text-muted)] text-lg">{t('common.loadingSkillTree')}</div>
       </div>
     )
   }
-
-  const selectedSkillData = skills.find(s => s.id === selectedSkill)
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Header */}
       <header className="header-modern">
-        <div className="container-modern flex items-center justify-between">
+        <div className="container-wide flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/dashboard')}
               className="btn-modern text-sm"
             >
-              ↩ 返回
+              ↩ {t('common.back')}
             </button>
-            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">技能树</h1>
+            <h1 className="text-xl font-bold text-[var(--text-primary)] font-display">{t('skilltree.title')}</h1>
           </div>
-          <UserAvatarMenu />
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <UserAvatarMenu />
+          </div>
         </div>
       </header>
 
-      <main className="container-modern py-6">
+      {/* Main Content - Two Column Layout on Desktop */}
+      <main className="max-w-[1200px] mx-auto px-4 py-6">
         {/* 分类筛选 */}
-        <div className="flex gap-2 mb-4">
-          {Object.entries(categoryNames).map(([key, name]) => (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {categoryKeys.map(({ key, tKey }) => (
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-base font-medium transition-all ${
                 activeCategory === key
                   ? 'text-white'
                   : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -236,267 +226,285 @@ export default function SkillTreePage() {
                   : {}
               }
             >
-              {name}
+              {t(tKey)}
             </button>
           ))}
         </div>
 
-        {/* 技能树 SVG */}
-        <div className="card-modern p-4 overflow-x-auto">
-          <svg
-            width={900}
-            height={400}
-            viewBox="0 0 900 400"
-            className="mx-auto"
-            style={{ minWidth: 700 }}
-          >
-            <defs>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* 技能树 SVG - 占2列 */}
+          <div className="lg:col-span-2">
+            <div className="card-modern p-4">
+              <svg
+                viewBox="0 0 1100 600"
+                className="w-full h-auto"
+                style={{ minWidth: 400 }}
+              >
+                <defs>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                      <feMergeNode in="coloredBlur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
 
-            {/* 连线 */}
-            {connections.map((conn, idx) => {
-              const from = layoutMap.get(conn.from)
-              const to = layoutMap.get(conn.to)
-              if (!from || !to) return null
-              const color = getConnectionColor(conn.from, conn.to)
-              const opacity = getConnectionOpacity(conn.from, conn.to)
-              const x1 = from.x + NODE_W / 2
-              const y1 = from.y + NODE_H
-              const x2 = to.x + NODE_W / 2
-              const y2 = to.y
-              const midY = (y1 + y2) / 2
+                {/* 连线 */}
+                {connections.map((conn, idx) => {
+                  const from = layoutMap.get(conn.from)
+                  const to = layoutMap.get(conn.to)
+                  if (!from || !to) return null
+                  const fromSkill = skills.find(s => s.id === conn.from)
+                  const toSkill = skills.find(s => s.id === conn.to)
 
-              return (
-                <path
-                  key={idx}
-                  d={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={2}
-                  opacity={opacity}
-                  strokeDasharray={!from || skills.find(s => s.id === conn.from)?.unlocked ? 'none' : '5,5'}
-                />
-              )
-            })}
+                  // 连线颜色
+                  let color = '#4A4A5A'
+                  if (fromSkill?.unlocked && toSkill?.unlocked) color = skillLineColors[fromSkill.category] || '#4A4A5A'
+                  else if (fromSkill?.unlocked && toSkill?.canUnlock) color = '#FFB74D'
 
-            {/* 节点 */}
-            {layout.map(node => {
-              const skill = skills.find(s => s.id === node.id)
-              if (!skill) return null
-              if (!filteredIds.has(skill.id)) return null
+                  // 连线透明度
+                  const opacity = fromSkill?.unlocked ? 1 : 0.3
 
-              const color = getStatusColor(skill)
-              const isSelected = selectedSkill === skill.id
-              const lineColor = skillLineColors[skill.category] || '#4A4A5A'
+                  const x1 = from.x + NODE_W / 2
+                  const y1 = from.y + NODE_H
+                  const x2 = to.x + NODE_W / 2
+                  const y2 = to.y
+                  const midY = (y1 + y2) / 2
 
-              return (
-                <g
-                  key={node.id}
-                  onClick={() => loadDetail(skill.id)}
-                  className="cursor-pointer"
-                  style={{ transition: 'transform 0.2s' }}
-                >
-                  {/* 节点背景 */}
-                  <rect
-                    x={node.x}
-                    y={node.y}
-                    width={NODE_W}
-                    height={NODE_H}
-                    rx={8}
-                    fill={skill.unlocked ? `${lineColor}20` : 'var(--bg-secondary)'}
-                    stroke={color}
-                    strokeWidth={isSelected ? 3 : 2}
-                    filter={skill.canUnlock ? 'url(#glow)' : undefined}
-                  />
-                  {/* 技能名称 */}
-                  <text
-                    x={node.x + NODE_W / 2}
-                    y={node.y + 22}
-                    textAnchor="middle"
-                    fill={skill.unlocked ? color : '#9E9E9E'}
-                    fontSize={13}
-                    fontWeight={skill.unlocked ? 'bold' : 'normal'}
-                    fontFamily="inherit"
+                  return (
+                    <path
+                      key={idx}
+                      d={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={2}
+                      opacity={opacity}
+                      strokeDasharray={fromSkill?.unlocked ? 'none' : '5,5'}
+                    />
+                  )
+                })}
+
+                {/* 节点 */}
+                {layout.map(node => {
+                  const skill = skills.find(s => s.id === node.id)
+                  if (!skill) return null
+                  if (!filteredIds.has(skill.id)) return null
+
+                  const color = getStatusColor(skill)
+                  const isSelected = selectedSkill === skill.id
+                  const lineColor = skillLineColors[skill.category] || '#4A4A5A'
+
+                  return (
+                    <g
+                      key={node.id}
+                      onClick={() => loadDetail(skill.id)}
+                      className="cursor-pointer"
+                      style={{ transition: 'transform 0.2s' }}
+                    >
+                      {/* 节点背景 */}
+                      <rect
+                        x={node.x}
+                        y={node.y}
+                        width={NODE_W}
+                        height={NODE_H}
+                        rx={10}
+                        fill={skill.unlocked ? `${lineColor}20` : 'var(--bg-secondary)'}
+                        stroke={color}
+                        strokeWidth={isSelected ? 3 : 2}
+                        filter={skill.canUnlock ? 'url(#glow)' : undefined}
+                      />
+                      {/* 技能名称 */}
+                      <text
+                        x={node.x + NODE_W / 2}
+                        y={node.y + 30}
+                        textAnchor="middle"
+                        fill={skill.unlocked ? color : '#9E9E9E'}
+                        fontSize={17}
+                        fontWeight={skill.unlocked ? 'bold' : 'normal'}
+                        fontFamily="inherit"
+                      >
+                        {skill.name}
+                      </text>
+                      {/* 等级 */}
+                      <text
+                        x={node.x + NODE_W / 2}
+                        y={node.y + 55}
+                        textAnchor="middle"
+                        fill={skill.unlocked ? color : '#666'}
+                        fontSize={14}
+                        fontFamily="inherit"
+                      >
+                        {skill.unlocked
+                          ? `Lv.${skill.currentLevel}`
+                          : skill.canUnlock
+                            ? t('skilltree.legend_canUnlock')
+                            : t('skilltree.legend_locked')}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+
+              {/* 图例 */}
+              <div className="flex gap-4 mt-4 justify-center text-sm text-[var(--text-muted)]">
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-4 h-4 rounded" style={{ backgroundColor: '#4CAF50' }} />
+                  {t('skilltree.legend_unlocked')}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-4 h-4 rounded" style={{ backgroundColor: '#FFB74D' }} />
+                  {t('skilltree.legend_canUnlock')}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-4 h-4 rounded" style={{ backgroundColor: '#4A4A5A' }} />
+                  {t('skilltree.legend_locked')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 技能详情侧边栏 - 占1列 */}
+          <div className="lg:col-span-1">
+            {detail ? (
+              <div className="card-modern sticky top-4">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold font-display" style={{ color: getStatusColor(selectedSkillData!) }}>
+                      {detail.definition.name}
+                    </h2>
+                    <p className="text-sm text-[var(--text-muted)]">{detail.definition.nameEn}</p>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedSkill(null); setDetail(null) }}
+                    className="btn-modern text-sm"
                   >
-                    {skill.name}
-                  </text>
-                  {/* 等级 */}
-                  <text
-                    x={node.x + NODE_W / 2}
-                    y={node.y + 42}
-                    textAnchor="middle"
-                    fill={skill.unlocked ? color : '#666'}
-                    fontSize={11}
-                    fontFamily="inherit"
-                  >
-                    {skill.unlocked
-                      ? `Lv.${skill.currentLevel}`
-                      : skill.canUnlock
-                        ? '可解锁'
-                        : '未解锁'}
-                  </text>
-                </g>
-              )
-            })}
-          </svg>
+                    {t('common.close')}
+                  </button>
+                </div>
 
-          {/* 图例 */}
-          <div className="flex gap-4 mt-4 justify-center text-xs text-[var(--text-muted)]">
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: '#4CAF50' }} />
-              已解锁
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: '#FFB74D' }} />
-              可解锁
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: '#4A4A5A' }} />
-              未解锁
-            </span>
+                <p className="text-[var(--text-secondary)] mb-4">{detail.definition.description}</p>
+
+                {/* 标签 */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  <span className="tag-modern px-3 py-1.5 text-sm" style={{ backgroundColor: skillLineColors[detail.definition.category] + '30', color: skillLineColors[detail.definition.category] }}>
+                    {t(skillLineNameKeys[detail.definition.category])}
+                  </span>
+                  {detail.unlocked && (
+                    <span className="tag-modern px-3 py-1.5 text-sm" style={{ backgroundColor: '#4CAF5030', color: '#4CAF50' }}>
+                      {t('skilltree.legend_unlocked')}
+                    </span>
+                  )}
+                  {detail.canUnlock && (
+                    <span className="tag-modern px-3 py-1.5 text-sm" style={{ backgroundColor: '#FFB74D30', color: '#FFB74D' }}>
+                      {t('skilltree.legend_canUnlock')}
+                    </span>
+                  )}
+                </div>
+
+                {/* 当前等级与EXP */}
+                {detail.unlocked && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-[var(--text-secondary)]">
+                        {t('status.currentLevel', { level: detail.currentLevel })}
+                      </span>
+                      <span className="text-sm text-[var(--text-muted)]">
+                        {t('skilltree.currentExp', { current: detail.currentExp, next: detail.expForNext })}
+                      </span>
+                    </div>
+                    <div className="progress-modern">
+                      <div
+                        className="progress-fill"
+                        style={{
+                          width: `${detail.expForNext > 0 ? Math.min((detail.currentExp / detail.expForNext) * 100, 100) : 100}%`,
+                          backgroundColor: skillLineColors[detail.definition.category]
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 前置条件 */}
+                {detail.definition.prerequisites.length > 0 && (
+                  <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">{t('skilltree.prerequisites')}</h4>
+                    {detail.definition.prerequisites.map((pr, idx) => {
+                      const prereqSkill = skills.find(s => s.id === pr.skillId)
+                      const met = prereqSkill ? prereqSkill.unlocked && prereqSkill.currentLevel >= pr.minLevel : false
+                      const prereqDef = prereqSkill
+                      return (
+                        <div key={idx} className="flex items-center gap-2 text-sm">
+                          <span className={met ? 'text-[var(--accent-green)]' : 'text-[var(--text-muted)]'}>
+                            {met ? '\u2713' : '\u2717'} {prereqDef?.name ?? pr.skillId} {t('skilltree.reachedLevel', { level: pr.minLevel })}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {detail.unlockReason && !detail.canUnlock && !detail.unlocked && (
+                      <p className="text-sm text-[var(--accent-red)] mt-2">{detail.unlockReason}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* 解锁按钮 */}
+                {!detail.unlocked && detail.canUnlock && (
+                  <button
+                    onClick={handleUnlock}
+                    disabled={isUnlocking}
+                    className="btn-modern w-full py-3 font-medium disabled:opacity-50"
+                    style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}
+                  >
+                    {isUnlocking ? t('skilltree.unlocking') : t('skilltree.unlockSkill')}
+                  </button>
+                )}
+
+                {/* 解锁消息 */}
+                {unlockMsg && (
+                  <p className={`text-sm text-center mt-2 ${unlockMsg.startsWith('解锁') ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
+                    {unlockMsg}
+                  </p>
+                )}
+
+                {/* 子等级列表 */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">{t('skilltree.levelDetails')}</h4>
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {detail.definition.subLevels.map((sub) => {
+                      const isCurrentLevel = detail.unlocked && detail.currentLevel >= sub.level
+                      const isFutureLevel = detail.unlocked && detail.currentLevel < sub.level
+                      return (
+                        <div
+                          key={sub.level}
+                          className="flex items-center gap-3 p-3 rounded-lg text-sm"
+                          style={{
+                            backgroundColor: isCurrentLevel ? `${skillLineColors[detail.definition.category]}15` : 'transparent',
+                            opacity: isFutureLevel ? 0.5 : 1,
+                          }}
+                        >
+                          <span
+                            className="w-14 text-center font-medium text-base"
+                            style={{ color: isCurrentLevel ? skillLineColors[detail.definition.category] : 'var(--text-muted)' }}
+                          >
+                            Lv.{sub.level}
+                          </span>
+                          <span className="font-medium text-[var(--text-primary)]">{sub.title}</span>
+                          <span className="text-[var(--text-muted)] truncate">{sub.description}</span>
+                          {isCurrentLevel && <span className="text-[var(--accent-green)] ml-auto">\u2713</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="card-modern sticky top-4 text-center py-16 px-6">
+                <span className="text-5xl mb-4 block">🌳</span>
+                <p className="text-[var(--text-muted)]">{t('skilltree.clickNodeHint')}</p>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* 技能详情面板 */}
-        {detail && (
-          <div className="card-modern mt-4">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold font-display" style={{ color: getStatusColor(selectedSkillData!) }}>
-                  {detail.definition.name}
-                </h2>
-                <p className="text-sm text-[var(--text-muted)]">{detail.definition.nameEn}</p>
-              </div>
-              <button
-                onClick={() => { setSelectedSkill(null); setDetail(null) }}
-                className="btn-modern text-sm"
-              >
-                关闭
-              </button>
-            </div>
-
-            <p className="text-[var(--text-secondary)] mb-4">{detail.definition.description}</p>
-
-            {/* 标签 */}
-            <div className="flex gap-2 mb-4">
-              <span className="tag-modern" style={{ backgroundColor: skillLineColors[detail.definition.category] + '30', color: skillLineColors[detail.definition.category] }}>
-                {skillLineNames[detail.definition.category]}
-              </span>
-              {detail.unlocked && (
-                <span className="tag-modern" style={{ backgroundColor: '#4CAF5030', color: '#4CAF50' }}>
-                  已解锁
-                </span>
-              )}
-              {detail.canUnlock && (
-                <span className="tag-modern" style={{ backgroundColor: '#FFB74D30', color: '#FFB74D' }}>
-                  可解锁
-                </span>
-              )}
-            </div>
-
-            {/* 当前等级与EXP */}
-            {detail.unlocked && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-[var(--text-secondary)]">
-                    当前等级: Lv.{detail.currentLevel}
-                  </span>
-                  <span className="text-sm text-[var(--text-muted)]">
-                    {detail.currentExp} / {detail.expForNext} EXP
-                  </span>
-                </div>
-                <div className="progress-modern">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${detail.expForNext > 0 ? Math.min((detail.currentExp / detail.expForNext) * 100, 100) : 100}%`,
-                      backgroundColor: skillLineColors[detail.definition.category]
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 前置条件 */}
-            {detail.definition.prerequisites.length > 0 && (
-              <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">前置条件</h4>
-                {detail.definition.prerequisites.map((pr, idx) => {
-                  const prereqSkill = skills.find(s => s.id === pr.skillId)
-                  const met = prereqSkill ? prereqSkill.unlocked && prereqSkill.currentLevel >= pr.minLevel : false
-                  const prereqDef = prereqSkill
-                  return (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <span className={met ? 'text-[var(--accent-green)]' : 'text-[var(--text-muted)]'}>
-                        {met ? '\u2713' : '\u2717'} {prereqDef?.name ?? pr.skillId} 达到 Lv.{pr.minLevel}
-                      </span>
-                    </div>
-                  )
-                })}
-                {detail.unlockReason && !detail.canUnlock && !detail.unlocked && (
-                  <p className="text-xs text-[var(--accent-red)] mt-2">{detail.unlockReason}</p>
-                )}
-              </div>
-            )}
-
-            {/* 解锁按钮 */}
-            {!detail.unlocked && detail.canUnlock && (
-              <button
-                onClick={handleUnlock}
-                disabled={isUnlocking}
-                className="btn-modern w-full py-3 font-medium disabled:opacity-50"
-                style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}
-              >
-                {isUnlocking ? '解锁中...' : '解锁技能'}
-              </button>
-            )}
-
-            {/* 解锁消息 */}
-            {unlockMsg && (
-              <p className={`text-sm text-center mt-2 ${unlockMsg.startsWith('解锁') ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'}`}>
-                {unlockMsg}
-              </p>
-            )}
-
-            {/* 子等级列表 */}
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-2 font-display">等级详情</h4>
-              <div className="space-y-2">
-                {detail.definition.subLevels.map((sub) => {
-                  const isCurrentLevel = detail.unlocked && detail.currentLevel >= sub.level
-                  const isFutureLevel = detail.unlocked && detail.currentLevel < sub.level
-                  return (
-                    <div
-                      key={sub.level}
-                      className="flex items-center gap-3 p-2 rounded-lg text-sm"
-                      style={{
-                        backgroundColor: isCurrentLevel ? `${skillLineColors[detail.definition.category]}15` : 'transparent',
-                        opacity: isFutureLevel ? 0.5 : 1,
-                      }}
-                    >
-                      <span
-                        className="w-16 text-center font-medium"
-                        style={{ color: isCurrentLevel ? skillLineColors[detail.definition.category] : 'var(--text-muted)' }}
-                      >
-                        Lv.{sub.level}
-                      </span>
-                      <span className="font-medium text-[var(--text-primary)]">{sub.title}</span>
-                      <span className="text-[var(--text-muted)] text-xs">{sub.description}</span>
-                      {isCurrentLevel && <span className="text-[var(--accent-green)] ml-auto">\u2713</span>}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )

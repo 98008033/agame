@@ -2,7 +2,7 @@
  * 冲突检测与解决系统
  *
  * 核心逻辑:
- * - 冲突检测: 资源稀缺、派系紧张、个人宿敌
+ * - 冲突检测: 资源稀缺、国家紧张、个人宿敌
  * - 冲突事件生成: 使用 LLM 生成叙事描述
  * - 冲突解决: 根据选择结果更新关系和权力
  */
@@ -10,8 +10,8 @@
 import prisma from '../models/prisma.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import { llmService } from '../services/llm/index.js';
-import { FactionNames, clampReputation } from '../types/game.js';
-import type { Faction } from '../types/game.js';
+import { NationNames, clampReputation } from '../types/game.js';
+import type { Nation } from '../types/game.js';
 
 // ============================================
 // 常量配置
@@ -20,7 +20,7 @@ import type { Faction } from '../types/game.js';
 export const CONFLICT_CONFIG = {
   // 冲突检测阈值
   resourceShortageThreshold: 0.8,  // 资源供给<需求的80%触发
-  factionHostilityThreshold: -30,  // 派系关系<-30触发
+  factionHostilityThreshold: -30,  // 国家关系<-30触发
   npcRivalryThreshold: -40,        // NPC关系<-40触发宿敌
   factionPowerImbalance: 2.0,      // 权力差距>2倍触发冲突
 
@@ -77,8 +77,8 @@ export async function detectConflicts(): Promise<ConflictDetectionResult> {
   const resourceConflicts = await detectResourceConflicts();
   newConflicts.push(...resourceConflicts);
 
-  // ---- 2. 派系紧张冲突 ----
-  const factionConflicts = await detectFactionConflicts();
+  // ---- 2. 国家紧张冲突 ----
+  const factionConflicts = await detectNationConflicts();
   newConflicts.push(...factionConflicts);
 
   // ---- 3. 个人宿敌冲突 ----
@@ -111,7 +111,7 @@ export async function detectConflicts(): Promise<ConflictDetectionResult> {
 
   for (const event of activeConflicts) {
     if (event.description.includes('资源')) byType.resource_scarcity++;
-    if (event.description.includes('派系')) byType.faction_tension++;
+    if (event.description.includes('国家')) byType.faction_tension++;
     if (event.description.includes('个人') || event.description.includes('宿敌')) byType.personal_rivalry++;
     if (event.description.includes('阶级')) byType.class_tension++;
   }
@@ -135,8 +135,8 @@ async function detectResourceConflicts(): Promise<Conflict[]> {
 
   const factions = safeJsonParse<Record<string, { military: number; economy: number; stability: number }>>(worldState.factions, {});
 
-  // 检测经济低下的派系可能产生资源冲突
-  const factionList: Faction[] = ['canglong', 'shuanglang', 'jinque', 'border'];
+  // 检测经济低下的国家可能产生资源冲突
+  const factionList: Nation[] = ['canglong', 'shuanglang', 'jinque', 'border'];
 
   for (const faction of factionList) {
     const factionData = factions[faction];
@@ -145,14 +145,14 @@ async function detectResourceConflicts(): Promise<Conflict[]> {
     const economy = factionData.economy ?? 50;
     const stability = factionData.stability ?? 50;
 
-    // 经济低下且稳定性低的派系可能产生资源矛盾
+    // 经济低下且稳定性低的国家可能产生资源矛盾
     if (economy < 30 && stability < 40) {
       conflicts.push({
         id: `conflict_resource_${faction}_${Date.now().toString(36)}`,
         type: 'resource_scarcity',
         participants: [faction],
         severity: Math.round((50 - economy) / 5),
-        description: `${FactionNames[faction]} 面临资源稀缺，经济(${economy})与稳定性(${stability})均较低，可能引发冲突`,
+        description: `${NationNames[faction]} 面临资源稀缺，经济(${economy})与稳定性(${stability})均较低，可能引发冲突`,
         status: 'active',
         createdAt: new Date(),
       });
@@ -163,17 +163,17 @@ async function detectResourceConflicts(): Promise<Conflict[]> {
 }
 
 /**
- * 检测派系紧张冲突
+ * 检测国家紧张冲突
  */
-async function detectFactionConflicts(): Promise<Conflict[]> {
+async function detectNationConflicts(): Promise<Conflict[]> {
   const conflicts: Conflict[] = [];
   const worldState = await prisma.worldState.findFirst({ orderBy: { day: 'desc' } });
   if (!worldState) return conflicts;
 
   const factions = safeJsonParse<Record<string, { military: number; economy: number; stability: number }>>(worldState.factions, {});
-  const factionList: Faction[] = ['canglong', 'shuanglang', 'jinque', 'border'];
+  const factionList: Nation[] = ['canglong', 'shuanglang', 'jinque', 'border'];
 
-  // 检查军事力量悬殊的派系之间是否可能产生冲突
+  // 检查军事力量悬殊的国家之间是否可能产生冲突
   for (let i = 0; i < factionList.length; i++) {
     for (let j = i + 1; j < factionList.length; j++) {
       const a = factionList[i]!;
@@ -195,7 +195,7 @@ async function detectFactionConflicts(): Promise<Conflict[]> {
           type: 'faction_tension',
           participants: [a, b],
           severity: Math.round((maxMil - minMil) / 10),
-          description: `派系紧张: ${FactionNames[a]} (军事${militaryA}) 与 ${FactionNames[b]} (军事${militaryB}) 力量失衡`,
+          description: `国家紧张: ${NationNames[a]} (军事${militaryA}) 与 ${NationNames[b]} (军事${militaryB}) 力量失衡`,
           status: 'active',
           createdAt: new Date(),
         });
@@ -253,7 +253,7 @@ export async function generateConflictEvent(
 ): Promise<Conflict | null> {
   // 获取参与者信息
   const participantNames: string[] = [];
-  const participantFactions: Faction[] = [];
+  const participantNations: Nation[] = [];
 
   for (const pid of participants) {
     // 尝试作为NPC
@@ -263,14 +263,14 @@ export async function generateConflictEvent(
     });
     if (npc) {
       participantNames.push(npc.name);
-      if (npc.faction) participantFactions.push(npc.faction as Faction);
+      if (npc.faction) participantNations.push(npc.faction as Nation);
       continue;
     }
 
-    // 尝试作为派系
+    // 尝试作为国家
     if (['canglong', 'shuanglang', 'jinque', 'border'].includes(pid)) {
-      participantNames.push(FactionNames[pid as Faction]);
-      participantFactions.push(pid as Faction);
+      participantNames.push(NationNames[pid as Nation]);
+      participantNations.push(pid as Nation);
     }
 
     // 尝试作为玩家
@@ -280,7 +280,7 @@ export async function generateConflictEvent(
     });
     if (player) {
       participantNames.push(player.name);
-      if (player.faction) participantFactions.push(player.faction as Faction);
+      if (player.faction) participantNations.push(player.faction as Nation);
     }
   }
 
@@ -291,7 +291,7 @@ export async function generateConflictEvent(
       { role: 'system' as const, content: '你是一位游戏事件叙事生成器。请根据冲突信息生成一个事件描述（200字以内）。' },
       {
         role: 'user' as const,
-        content: `冲突类型: ${conflictType}\n参与者: ${participantNames.join(', ')}\n涉及派系: ${participantFactions.map(f => FactionNames[f]).join(', ')}\n请生成事件描述。`
+        content: `冲突类型: ${conflictType}\n参与者: ${participantNames.join(', ')}\n涉及国家: ${participantNations.map(f => NationNames[f]).join(', ')}\n请生成事件描述。`
       },
     ];
     const response = await llmService.generate({ messages, maxTokens: 400 });

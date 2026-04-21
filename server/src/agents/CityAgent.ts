@@ -8,7 +8,7 @@ import { AgentConfig, CityAgentOutput, AGENT_CONFIGS } from './types.js';
 import { promptBuilder } from './PromptBuilder.js';
 import { outputValidator } from './OutputValidator.js';
 import prisma from '../models/prisma.js';
-import { FactionNames } from '../types/game.js';
+import { NationNames } from '../types/game.js';
 
 export interface CityConfig {
   id: string;
@@ -70,7 +70,7 @@ export class CityAgent extends BaseAgent<CityAgentOutput> {
     // 构建Prompt
     const messages = promptBuilder.buildCityAgentPrompt({
       cityName: this.cityConfig.name,
-      factionName: FactionNames[this.cityConfig.faction],
+      factionName: NationNames[this.cityConfig.faction],
       population: this.cityConfig.population,
       prosperity: this.cityConfig.prosperity,
       foodStorage: resources.food,

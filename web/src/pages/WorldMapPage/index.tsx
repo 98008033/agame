@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { worldApi } from '../../services'
 import { usePlayerStore } from '../../stores/playerStore'
 import { UserAvatarMenu } from '../../components'
 
-// 阵营配置
-const factionConfig: Record<string, { name: string; icon: string; color: string; bgAlpha: string }> = {
-  canglong: { name: '苍龙帝国', icon: '\u{1F409}', color: '#22C55E', bgAlpha: 'rgba(34, 197, 94, 0.15)' },
-  shuanglang: { name: '霜狼联邦', icon: '\u{1F43A}', color: '#0EA5E9', bgAlpha: 'rgba(14, 165, 233, 0.15)' },
-  jinque: { name: '金雀花王国', icon: '\u{1F338}', color: '#F97316', bgAlpha: 'rgba(249, 115, 22, 0.15)' },
-  border: { name: '边境联盟', icon: '\u{1F3D8}\u{FE0F}', color: '#A855F7', bgAlpha: 'rgba(168, 85, 247, 0.15)' },
-  neutral: { name: '中立地带', icon: '\u26AA', color: '#64748B', bgAlpha: 'rgba(100, 116, 139, 0.1)' },
+// 阵营配置 (colors/icons only; names are i18n'd via t())
+const factionConfig: Record<string, { icon: string; color: string; bgAlpha: string }> = {
+  canglong: { icon: '\u{1F409}', color: '#22C55E', bgAlpha: 'rgba(34, 197, 94, 0.15)' },
+  shuanglang: { icon: '\u{1F43A}', color: '#0EA5E9', bgAlpha: 'rgba(14, 165, 233, 0.15)' },
+  jinque: { icon: '\u{1F338}', color: '#F97316', bgAlpha: 'rgba(249, 115, 22, 0.15)' },
+  border: { icon: '\u{1F3D8}\u{FE0F}', color: '#A855F7', bgAlpha: 'rgba(168, 85, 247, 0.15)' },
+  neutral: { icon: '\u26AA', color: '#64748B', bgAlpha: 'rgba(100, 116, 139, 0.1)' },
 }
 
 // 城市数据结构
@@ -71,25 +72,28 @@ const defaultMapData: { cities: CityData[]; factions: FactionPower[] } = {
 // 城市详情弹窗
 function CityDetailModal({ city, onClose }: { city: CityData; onClose: () => void }) {
   const navigate = useNavigate()
-  const faction = factionConfig[city.faction] || factionConfig.neutral
+  const { t } = useTranslation()
+  const factionKey = city.faction === 'neutral' ? 'neutral_zone' : city.faction
+  const factionName = t(`factions.${factionKey}`)
   const popFormatted = city.population >= 100000
     ? `${(city.population / 100000).toFixed(1)}万`
     : `${city.population / 1000}千`
+  const fc = factionConfig[city.faction] || factionConfig.neutral
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
         className="card-modern mx-4 w-full max-w-sm animate-slideUp"
-        style={{ borderColor: faction.color + '60' }}
+        style={{ borderColor: fc.color + '60' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-lg font-bold font-display" style={{ color: faction.color }}>
-              {faction.icon} {city.name}
+            <h3 className="text-lg font-bold font-display" style={{ color: fc.color }}>
+              {fc.icon} {city.name}
             </h3>
-            <span className="tag-modern mt-1" style={{ color: faction.color, background: faction.bgAlpha }}>
-              {faction.name}
+            <span className="tag-modern mt-1" style={{ color: fc.color, background: fc.bgAlpha }}>
+              {factionName}
             </span>
           </div>
           <button onClick={onClose} className="btn-modern px-2 py-1 text-sm">&times;</button>
@@ -101,14 +105,14 @@ function CityDetailModal({ city, onClose }: { city: CityData; onClose: () => voi
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-[var(--text-muted)]">人口</span>
+            <span className="text-[var(--text-muted)]">{t('world_map.population')}</span>
             <span className="font-medium text-[var(--text-primary)]">{popFormatted}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-[var(--text-muted)]">状态</span>
+            <span className="text-[var(--text-muted)]">{t('world_map.status')}</span>
             {city.hasConflict
-              ? <span className="text-[var(--accent-red)] font-medium">⚔️ 冲突中</span>
-              : <span className="text-[var(--accent-green)] font-medium">和平</span>
+              ? <span className="text-[var(--accent-red)] font-medium">⚔️ {t('world_map.inConflict')}</span>
+              : <span className="text-[var(--accent-green)] font-medium">{t('world_map.peaceStatus')}</span>
             }
           </div>
         </div>
@@ -118,9 +122,9 @@ function CityDetailModal({ city, onClose }: { city: CityData; onClose: () => voi
         <button
           onClick={() => { navigate('/factions'); onClose() }}
           className="btn-modern w-full text-sm"
-          style={{ borderColor: faction.color }}
+          style={{ borderColor: fc.color }}
         >
-          查看{faction.name}详情
+          {t('world_map.viewFactionDetail', { name: factionName })}
         </button>
       </div>
     </div>
@@ -137,6 +141,7 @@ function WorldMap({
   playerCityId: string | null
   onCityClick: (city: CityData) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="relative w-full" style={{ paddingBottom: '65%' }}>
       <svg
@@ -147,23 +152,23 @@ function WorldMap({
         {/* 阵营区域 - 简化为矩形区块 */}
         {/* 霜狼联邦 - 北部 */}
         <rect x="15" y="3" width="55" height="22" rx="3" fill={factionConfig.shuanglang.bgAlpha} stroke={factionConfig.shuanglang.color} strokeWidth="0.3" strokeOpacity="0.4" />
-        <text x="42" y="15" textAnchor="middle" fill={factionConfig.shuanglang.color} fontSize="3" opacity="0.6">霜狼联邦</text>
+        <text x="42" y="15" textAnchor="middle" fill={factionConfig.shuanglang.color} fontSize="3" opacity="0.6">{t('factions.shuanglang')}</text>
 
         {/* 金雀花王国 - 西部 */}
         <rect x="3" y="18" width="22" height="55" rx="3" fill={factionConfig.jinque.bgAlpha} stroke={factionConfig.jinque.color} strokeWidth="0.3" strokeOpacity="0.4" />
-        <text x="14" y="48" textAnchor="middle" fill={factionConfig.jinque.color} fontSize="3" opacity="0.6" transform="rotate(-90, 14, 48)">金雀花王国</text>
+        <text x="14" y="48" textAnchor="middle" fill={factionConfig.jinque.color} fontSize="3" opacity="0.6" transform="rotate(-90, 14, 48)">{t('factions.jinque')}</text>
 
         {/* 苍龙帝国 - 东部 */}
         <rect x="68" y="18" width="29" height="55" rx="3" fill={factionConfig.canglong.bgAlpha} stroke={factionConfig.canglong.color} strokeWidth="0.3" strokeOpacity="0.4" />
-        <text x="82" y="48" textAnchor="middle" fill={factionConfig.canglong.color} fontSize="3" opacity="0.6" transform="rotate(90, 82, 48)">苍龙帝国</text>
+        <text x="82" y="48" textAnchor="middle" fill={factionConfig.canglong.color} fontSize="3" opacity="0.6" transform="rotate(90, 82, 48)">{t('factions.canglong')}</text>
 
         {/* 边境联盟 - 南部 */}
         <rect x="25" y="72" width="50" height="25" rx="3" fill={factionConfig.border.bgAlpha} stroke={factionConfig.border.color} strokeWidth="0.3" strokeOpacity="0.4" />
-        <text x="50" y="86" textAnchor="middle" fill={factionConfig.border.color} fontSize="3" opacity="0.6">边境联盟</text>
+        <text x="50" y="86" textAnchor="middle" fill={factionConfig.border.color} fontSize="3" opacity="0.6">{t('factions.border')}</text>
 
         {/* 中立区域 - 中部 */}
         <rect x="30" y="30" width="40" height="38" rx="4" fill={factionConfig.neutral.bgAlpha} stroke={factionConfig.neutral.color} strokeWidth="0.2" strokeOpacity="0.3" />
-        <text x="50" y="51" textAnchor="middle" fill={factionConfig.neutral.color} fontSize="2.5" opacity="0.5">中立地带</text>
+        <text x="50" y="51" textAnchor="middle" fill={factionConfig.neutral.color} fontSize="2.5" opacity="0.5">{t('factions.neutral_zone')}</text>
 
         {/* 连接线 - 城市间的贸易路线 */}
         <line x1="50" y1="50" x2="78" y2="25" stroke="rgba(255,255,255,0.06)" strokeWidth="0.15" strokeDasharray="0.5,0.5" />
@@ -237,20 +242,23 @@ function WorldMap({
 
 // 阵营势力面板
 function FactionPowerPanel({ factions }: { factions: FactionPower[] }) {
+  const { t } = useTranslation()
   return (
     <div className="card-modern">
-      <h3 className="text-sm font-bold text-[var(--text-primary)] font-display mb-3">阵营势力</h3>
+      <h3 className="text-sm font-bold text-[var(--text-primary)] font-display mb-3">{t('world_map.factionArea')}</h3>
       <div className="space-y-3">
         {factions.map((f) => {
           const trendIcon = f.trend === 'up' ? '\u2191' : f.trend === 'down' ? '\u2193' : '\u2192'
           const trendColor = f.trend === 'up' ? 'var(--accent-green)' : f.trend === 'down' ? 'var(--accent-red)' : 'var(--text-muted)'
+          const factionKey = f.id === 'neutral' ? 'neutral_zone' : f.id
+          const factionName = t(`factions.${factionKey}`)
 
           return (
             <div key={f.id}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">{f.icon}</span>
-                  <span className="text-xs font-medium text-[var(--text-primary)]">{f.name}</span>
+                  <span className="text-xs font-medium text-[var(--text-primary)]">{factionName}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs" style={{ color: trendColor }}>{trendIcon}</span>
@@ -264,7 +272,7 @@ function FactionPowerPanel({ factions }: { factions: FactionPower[] }) {
                 />
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                {f.cities} 座城市
+                {t('world_map.citiesCount', { count: f.cities })}
               </div>
             </div>
           )
@@ -277,6 +285,7 @@ function FactionPowerPanel({ factions }: { factions: FactionPower[] }) {
 // 主页面
 export default function WorldMapPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const [cities, setCities] = useState<CityData[]>([])
   const [factionPowers, setFactionPowers] = useState<FactionPower[]>([])
@@ -321,12 +330,12 @@ export default function WorldMapPage() {
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <header className="header-modern">
           <div className="container-wide flex items-center justify-between">
-            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">世界地图</h1>
+            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">{t('world_map.title')}</h1>
             <UserAvatarMenu />
           </div>
         </header>
         <div className="container-wide py-6">
-          <div className="text-center py-12 text-[var(--text-muted)]">加载中...</div>
+          <div className="loading-state">{t('common.loading')}</div>
         </div>
       </div>
     )
@@ -339,9 +348,9 @@ export default function WorldMapPage() {
         <div className="container-wide flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/dashboard')} className="btn-modern text-sm px-3 py-1">
-              ← 返回
+              ← {t('common.back')}
             </button>
-            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">世界地图</h1>
+            <h1 className="text-lg font-bold text-[var(--text-primary)] font-display">{t('world_map.title')}</h1>
           </div>
           <UserAvatarMenu />
         </div>
@@ -355,15 +364,18 @@ export default function WorldMapPage() {
             <div className="card-modern p-2">
               {/* 图例 */}
               <div className="flex flex-wrap gap-3 mb-3 px-2">
-                {Object.entries(factionConfig).map(([key, fc]) => (
-                  <div key={key} className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fc.color }} />
-                    <span className="text-xs text-[var(--text-secondary)]">{fc.name}</span>
-                  </div>
-                ))}
+                {Object.entries(factionConfig).map(([key, fc]) => {
+                  const factionKey = key === 'neutral' ? 'neutral_zone' : key
+                  return (
+                    <div key={key} className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fc.color }} />
+                      <span className="text-xs text-[var(--text-secondary)]">{t(`factions.${factionKey}`)}</span>
+                    </div>
+                  )
+                })}
                 <div className="flex items-center gap-1.5 ml-auto">
                   <span className="text-xs text-[var(--accent-red)] animate-pulse">⚔️</span>
-                  <span className="text-xs text-[var(--text-secondary)]">冲突</span>
+                  <span className="text-xs text-[var(--text-secondary)]">{t('world_map.conflict')}</span>
                 </div>
               </div>
 
@@ -376,7 +388,7 @@ export default function WorldMapPage() {
 
               {/* 当前玩家位置 */}
               <div className="mt-3 px-2 flex items-center gap-2">
-                <span className="text-xs text-[var(--text-muted)]">当前位置:</span>
+                <span className="text-xs text-[var(--text-muted)]">{t('world_map.currentPosition')}</span>
                 <span className="text-xs font-medium" style={{ color: 'var(--accent-gold)' }}>
                   {cities.find(c => c.id === playerCityId)?.name || playerCityId}
                 </span>
@@ -390,7 +402,7 @@ export default function WorldMapPage() {
 
             {/* 城市列表 */}
             <div className="card-modern">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] font-display mb-3">城市列表</h3>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] font-display mb-3">{t('world_map.cityList')}</h3>
               <div className="space-y-1.5 max-h-80 overflow-y-auto">
                 {cities.map((city) => {
                   const fc = factionConfig[city.faction] || factionConfig.neutral
@@ -419,9 +431,9 @@ export default function WorldMapPage() {
 
             {/* 地图说明 */}
             <div className="card-modern-alt text-xs text-[var(--text-muted)] space-y-1">
-              <p>🖱️ 点击城市查看详情</p>
-              <p>📍 金色标记为玩家当前位置</p>
-              <p>⚔️ 红色脉冲表示冲突区域</p>
+              <p>🖱️ {t('world_map.clickCityToView')}</p>
+              <p>📍 {t('world_map.goldMarkerHint')}</p>
+              <p>⚔️ {t('world_map.redPulseHint')}</p>
             </div>
           </div>
         </div>

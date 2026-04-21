@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import type { Chapter } from '../../stores/novelStore'
 import { UserAvatarMenu } from '../index'
 
@@ -18,6 +19,7 @@ export default function ChapterHeader({
   hasNext,
 }: ChapterHeaderProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <header className="sticky top-0 stone-panel py-4 z-40">
@@ -27,9 +29,9 @@ export default function ChapterHeader({
           <button
             onClick={() => navigate('/dashboard')}
             className="pixel-btn text-sm bg-[var(--pixel-bg-mid)]"
-            title="返回主页"
+            title={t('novel_reader.backHome')}
           >
-            ↩ 返回
+            ↩ {t('novel_reader.back')}
           </button>
           <button
             onClick={onPrev}
@@ -38,17 +40,17 @@ export default function ChapterHeader({
               hasPrev ? '' : 'opacity-50 cursor-not-allowed'
             }`}
           >
-            ◀ 上一回
+            ◀ {t('novel_reader.prevChapter')}
           </button>
         </div>
 
         {/* 章节标题 */}
         <div className="text-center">
           <h1 className="text-xl font-bold text-[var(--pixel-text-light)] pixel-font">
-            第{chapter.number}回 · {chapter.title}
+            {t('novel_reader.chapterTitle', { number: chapter.number, title: chapter.title })}
           </h1>
           <p className="text-sm text-[var(--pixel-bg-paper)]">
-            第{chapter.day}日 · {chapter.wordCount}字
+            {t('novel_reader.chapterDay', { day: chapter.day })} · {t('novel_reader.wordCount', { count: chapter.wordCount })}
           </p>
         </div>
 
@@ -61,7 +63,7 @@ export default function ChapterHeader({
               hasNext ? '' : 'opacity-50 cursor-not-allowed'
             }`}
           >
-            下一回 ▶
+            {t('novel_reader.nextChapter')} ▶
           </button>
           <UserAvatarMenu />
         </div>

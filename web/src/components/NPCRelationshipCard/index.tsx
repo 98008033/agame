@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { npcApi } from '../../services'
 
 /**
@@ -8,13 +9,13 @@ import { npcApi } from '../../services'
 
 // 关系等级配置
 const relationshipConfig: Record<string, { name: string; color: string; icon: string }> = {
-  enemy: { name: '死敌', color: 'text-[var(--accent-red)]', icon: '💀' },
-  hostile: { name: '敌对', color: 'text-[var(--accent-red)]', icon: '⚔️' },
-  distrust: { name: '不信任', color: 'text-orange-400', icon: '🤨' },
-  neutral: { name: '中立', color: 'text-[var(--text-muted)]', icon: '😐' },
-  friendly: { name: '友好', color: 'text-[var(--accent-green)]', icon: '😊' },
-  respect: { name: '尊敬', color: 'text-[var(--accent-blue)]', icon: '🙏' },
-  admire: { name: '爱慕', color: 'text-[var(--accent-purple)]', icon: '❤️' },
+  enemy: { name: 'relationships.enemy', color: 'text-[var(--accent-red)]', icon: '💀' },
+  hostile: { name: 'relationships.hostile', color: 'text-[var(--accent-red)]', icon: '⚔️' },
+  distrust: { name: 'relationships.distrust', color: 'text-orange-400', icon: '🤨' },
+  neutral: { name: 'relationships.neutral', color: 'text-[var(--text-muted)]', icon: '😐' },
+  friendly: { name: 'relationships.friendly', color: 'text-[var(--accent-green)]', icon: '😊' },
+  respect: { name: 'relationships.respect', color: 'text-[var(--accent-blue)]', icon: '🙏' },
+  admire: { name: 'relationships.admire', color: 'text-[var(--accent-purple)]', icon: '❤️' },
 }
 
 interface NPC {
@@ -35,6 +36,7 @@ interface NPCRelationshipCardProps {
 }
 
 export default function NPCRelationshipCard({ npc, prevRelationship, onRelationshipChange }: NPCRelationshipCardProps) {
+  const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [showChange, setShowChange] = useState(false)
   const [currentLevel, setCurrentLevel] = useState(npc.relationship?.level || 'neutral')
@@ -95,7 +97,7 @@ export default function NPCRelationshipCard({ npc, prevRelationship, onRelations
         {/* 关系等级 */}
         <div className="text-right">
           <span className={`font-medium font-display ${config.color}`}>
-            {config.name}
+            {t(config.name)}
           </span>
           <div className="flex items-center gap-1 justify-end mt-1">
             <div className="progress-modern" style={{ width: '60px', height: '4px' }}>
@@ -119,7 +121,7 @@ export default function NPCRelationshipCard({ npc, prevRelationship, onRelations
       {/* 变化浮动提示 */}
       {showChange && (
         <div className={`text-xs font-bold text-center mt-2 ${isPositive ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'} animate-float-up`}>
-          {isPositive ? '关系提升' : '关系下降'}
+          {isPositive ? t('relationships.relationshipIncreased') : t('relationships.relationshipDecreased')}
         </div>
       )}
 
@@ -129,7 +131,7 @@ export default function NPCRelationshipCard({ npc, prevRelationship, onRelations
         disabled={isLoading}
         className="w-full mt-3 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
       >
-        {isLoading ? '加载中...' : '查看详情'}
+        {isLoading ? t('common.loading') : t('common.clickToView')}
       </button>
     </div>
   )

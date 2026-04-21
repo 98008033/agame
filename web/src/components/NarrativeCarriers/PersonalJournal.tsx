@@ -4,9 +4,11 @@
  */
 
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNarrativeCarrierStore } from '../../stores/narrativeCarrierStore'
 
 export default function PersonalJournal() {
+  const { t } = useTranslation()
   const {
     journalEntries,
     journalLoading,
@@ -22,7 +24,7 @@ export default function PersonalJournal() {
   if (journalLoading) {
     return (
       <div className="min-h-screen bg-[var(--pixel-bg-dark)] flex items-center justify-center">
-        <p className="text-[var(--pixel-text-light)] pixel-font">加载日志中...</p>
+        <p className="text-[var(--pixel-text-light)] pixel-font">{t('personal_journal.loading')}</p>
       </div>
     )
   }
@@ -33,7 +35,7 @@ export default function PersonalJournal() {
       <header className="stone-panel py-4 sticky top-0 z-10">
         <div className="max-w-md mx-auto px-4">
           <h1 className="text-xl font-bold text-[var(--pixel-text-light)] pixel-font text-center">
-            【个人日志】
+            {t('personal_journal.title')}
           </h1>
         </div>
       </header>
@@ -43,7 +45,7 @@ export default function PersonalJournal() {
         {journalEntries.length === 0 ? (
           <div className="paper-panel p-6 text-center">
             <p className="text-[var(--pixel-text-dark)]">
-              你的日志还是空的。当你做出重要决定后，这里会记录你的故事。
+              {t('personal_journal.emptyHint')}
             </p>
           </div>
         ) : (
@@ -59,7 +61,7 @@ export default function PersonalJournal() {
                 {/* 日期和类型 */}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-[var(--pixel-bg-mid)]">
-                    第{entry.day}日
+                    {t('personal_journal.dayTitle', { day: entry.day })}
                   </span>
                   <span className="px-2 py-1 bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] text-xs rounded pixel-font">
                     {entry.eventType}
@@ -73,7 +75,7 @@ export default function PersonalJournal() {
 
                 {/* 你的选择 */}
                 <div className="bg-[var(--pixel-bg-paper)] p-2 rounded mb-2">
-                  <span className="text-sm text-[var(--pixel-bg-mid)]">你的选择：</span>
+                  <span className="text-sm text-[var(--pixel-bg-mid)]">{t('personal_journal.yourChoice')}：</span>
                   <span className="text-sm font-medium text-[var(--pixel-text-dark)] ml-2">
                     「{entry.choiceText}」
                   </span>
@@ -136,7 +138,7 @@ export default function PersonalJournal() {
 
                   {/* 你的选择 */}
                   <div className="bg-[var(--pixel-bg-mid)] p-3 rounded mb-4">
-                    <h4 className="text-sm text-[var(--pixel-text-light)] mb-2">你的选择</h4>
+                    <h4 className="text-sm text-[var(--pixel-text-light)] mb-2">{t('personal_journal.yourChoice')}</h4>
                     <p className="text-[var(--pixel-text-light)] font-medium">
                       「{entry.choiceText}」
                     </p>
@@ -153,7 +155,7 @@ export default function PersonalJournal() {
                   {entry.consequences && (
                     <div className="border-t-2 border-[var(--pixel-bg-mid)] pt-4">
                       <h4 className="text-sm font-medium text-[var(--pixel-text-dark)] mb-3">
-                        影响记录
+                        {t('personal_journal.impactRecord')}
                       </h4>
                       <div className="grid grid-cols-2 gap-2">
                         {entry.consequences.gold !== undefined && (
@@ -175,7 +177,7 @@ export default function PersonalJournal() {
                       </div>
                       {entry.consequences.newTags && entry.consequences.newTags.length > 0 && (
                         <div className="mt-3">
-                          <span className="text-sm text-[var(--pixel-bg-mid)]">获得标签：</span>
+                          <span className="text-sm text-[var(--pixel-bg-mid)]">{t('personal_journal.gainedTags')}：</span>
                           {entry.consequences.newTags.map(tag => (
                             <span key={tag} className="ml-2 px-2 py-1 bg-[var(--pixel-legendary)] text-[var(--pixel-text-light)] text-xs rounded">
                               {tag}
@@ -189,7 +191,7 @@ export default function PersonalJournal() {
                   {/* 涉及人物 */}
                   {entry.relatedNPCs.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-sm text-[var(--pixel-bg-mid)] mb-2">涉及人物</h4>
+                      <h4 className="text-sm text-[var(--pixel-bg-mid)] mb-2">{t('personal_journal.involvedCharacters')}</h4>
                       <div className="flex gap-2">
                         {entry.relatedNPCs.map(npc => (
                           <span key={npc} className="px-2 py-1 bg-[var(--pixel-bg-mid)] text-[var(--pixel-text-light)] text-sm rounded pixel-font">

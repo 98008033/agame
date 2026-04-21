@@ -3,7 +3,7 @@
 import { Router, type Request, type Response } from 'express';
 import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
-import { isValidFaction, FactionNames } from '../types/game.js';
+import { isValidNation, NationNames } from '../types/game.js';
 import { safeJsonParse } from '../utils/index.js';
 
 const router = Router();
@@ -137,7 +137,7 @@ router.get('/state', async (req: Request, res: Response): Promise<void> => {
         Object.entries(factionsData).map(([faction, data]) => [
           faction,
           {
-            name: data.name ?? FactionNames[faction as keyof typeof FactionNames],
+            name: data.name ?? NationNames[faction as keyof typeof NationNames],
             leader: data.leader ?? '未知',
             military: data.military ?? 50,
             economy: data.economy ?? 50,
@@ -169,7 +169,7 @@ router.get('/factions/:faction', async (req: Request, res: Response): Promise<vo
   const requestId = generateRequestId();
   const factionParam = req.params['faction'] ?? '';
 
-  if (!isValidFaction(factionParam)) {
+  if (!isValidNation(factionParam)) {
     res.status(400).json(createErrorResponse(
       'INVALID_REQUEST',
       '无效的阵营ID',
@@ -212,7 +212,7 @@ router.get('/factions/:faction', async (req: Request, res: Response): Promise<vo
       ...factionData,
     }, requestId));
   } catch (err) {
-    console.error('[Faction Detail Error]', err);
+    console.error('[Nation Detail Error]', err);
     res.status(500).json(createErrorResponse(
       'INTERNAL_ERROR',
       '获取阵营信息失败',

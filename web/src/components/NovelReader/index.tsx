@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNovelStore, type ReadingSettings } from '../../stores/novelStore'
 import ChapterHeader from './ChapterHeader'
 import SectionContent from './SectionContent'
@@ -21,6 +22,7 @@ const themeBgMap: Record<string, string> = {
 }
 
 export default function NovelReader() {
+  const { t } = useTranslation()
   const {
     currentChapter,
     chapters,
@@ -60,7 +62,7 @@ export default function NovelReader() {
   if (!currentChapter) {
     return (
       <div className="flex items-center justify-center h-screen bg-[var(--pixel-bg-dark)]">
-        <p className="text-[var(--pixel-text-light)] pixel-font">加载中...</p>
+        <p className="text-[var(--pixel-text-light)] pixel-font">{t('novel_reader.loading')}</p>
       </div>
     )
   }
@@ -127,14 +129,14 @@ export default function NovelReader() {
             disabled={!prevChapter}
             className={`pixel-btn ${!prevChapter ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            ◀ 上一回
+            ◀ {t('novel_reader.prevChapter')}
           </button>
 
           <button
             onClick={() => setShowChapterList(true)}
             className="pixel-btn bg-[var(--pixel-bg-mid)]"
           >
-            回目列表
+            {t('novel_reader.chapterList')}
           </button>
 
           <button
@@ -142,7 +144,7 @@ export default function NovelReader() {
             disabled={!nextChapter}
             className={`pixel-btn ${!nextChapter ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            下一回 ▶
+            {t('novel_reader.nextChapter')} ▶
           </button>
         </div>
       </main>

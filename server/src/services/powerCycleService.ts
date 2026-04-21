@@ -1,5 +1,5 @@
 /**
- * 权力循环系统 - 派系权力平衡、权力斗争检测与解决
+ * 权力循环系统 - 国家权力平衡、权力斗争检测与解决
  *
  * 核心逻辑:
  * - 每日权力周期: 权力评估 → 斗争检测 → 重组
@@ -11,8 +11,8 @@
 import prisma from '../models/prisma.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import { llmService } from '../services/llm/index.js';
-import { FactionNames } from '../types/game.js';
-import type { Faction } from '../types/game.js';
+import { NationNames } from '../types/game.js';
+import type { Nation } from '../types/game.js';
 
 // ============================================
 // 常量配置
@@ -40,8 +40,8 @@ export const POWER_CONFIG = {
 // 类型定义
 // ============================================
 
-export interface FactionPowerInfo {
-  faction: Faction;
+export interface NationPowerInfo {
+  faction: Nation;
   name: string;
   military: number;
   economy: number;
@@ -53,12 +53,12 @@ export interface FactionPowerInfo {
 
 export interface PowerStruggle {
   id: string;
-  factions: [Faction, Faction];
+  factions: [Nation, Nation];
   type: 'minor' | 'major' | 'critical';
   triggerReason: string;
   powerGap: number;
   status: 'active' | 'resolved' | 'escalated';
-  winner?: Faction;
+  winner?: Nation;
   resolution?: string;
   narrative?: string;
   createdAt: Date;
@@ -67,17 +67,17 @@ export interface PowerStruggle {
 
 export interface PowerCycleResult {
   day: number;
-  factionPowers: FactionPowerInfo[];
+  factionPowers: NationPowerInfo[];
   strugglesDetected: number;
   strugglesResolved: number;
   powerReorganized: boolean;
 }
 
 export interface PowerBalanceReport {
-  factions: FactionPowerInfo[];
+  factions: NationPowerInfo[];
   powerGap: number;
-  dominantFaction: Faction;
-  weakestFaction: Faction;
+  dominantNation: Nation;
+  weakestNation: Nation;
   isStable: boolean;
   activeStruggles: number;
 }
@@ -87,9 +87,9 @@ export interface PowerBalanceReport {
 // ============================================
 
 /**
- * 计算派系的综合权力值
+ * 计算国家的综合权力值
  */
-function calculateFactionPower(factionData: {
+function calculateNationPower(factionData: {
   military: number;
   economy: number;
   stability: number;
@@ -124,10 +124,10 @@ export async function tickPowerCycle(): Promise<PowerCycleResult> {
     {}
   );
 
-  const factionList: Faction[] = ['canglong', 'shuanglang', 'jinque', 'border'];
+  const factionList: Nation[] = ['canglong', 'shuanglang', 'jinque', 'border'];
 
   // ---- 2. 计算各方权力值 ----
-  const factionPowers: FactionPowerInfo[] = factionList
+  const factionPowers: NationPowerInfo[] = factionList
     .filter(f => factions[f])
     .map(f => {
       const data = factions[f]!;
@@ -138,12 +138,12 @@ export async function tickPowerCycle(): Promise<PowerCycleResult> {
 
       return {
         faction: f,
-        name: FactionNames[f],
+        name: NationNames[f],
         military,
         economy,
         stability,
         influence,
-        totalPower: calculateFactionPower({ military, economy, stability, influence }),
+        totalPower: calculateNationPower({ military, economy, stability, influence }),
         powerRank: 0,
       };
     })
@@ -163,7 +163,7 @@ export async function tickPowerCycle(): Promise<PowerCycleResult> {
       const b = factionPowers[j]!;
       const gap = a.totalPower - b.totalPower;
 
-      // 只有权力接近的派系才会产生斗争
+      // 只有权力接近的国家才会产生斗争
       if (gap <= POWER_CONFIG.struggleThreshold && gap >= 0) {
         const existingStruggle = activeStruggles.find(
           s => s.factions.includes(a.faction) && s.factions.includes(b.faction) && s.status === 'active'
@@ -206,7 +206,7 @@ export async function tickPowerCycle(): Promise<PowerCycleResult> {
     powerReorganized = true;
   }
 
-  console.log(`[Power] 权力周期完成: ${factionPowers.length} 个派系, ${newStruggles.length} 新斗争, ${resolvedCount} 已解决`);
+  console.log(`[Power] 权力周期完成: ${factionPowers.length} 个国家, ${newStruggles.length} 新斗争, ${resolvedCount} 已解决`);
 
   return {
     day: worldState.day,
@@ -218,9 +218,9 @@ export async function tickPowerCycle(): Promise<PowerCycleResult> {
 }
 
 /**
- * 获取当前所有派系的权力平衡状态
+ * 获取当前所有国家的权力平衡状态
  */
-export async function getFactionPowerBalance(): Promise<PowerBalanceReport> {
+export async function getNationPowerBalance(): Promise<PowerBalanceReport> {
   const worldState = await prisma.worldState.findFirst({
     orderBy: { day: 'desc' },
   });
@@ -234,9 +234,9 @@ export async function getFactionPowerBalance(): Promise<PowerBalanceReport> {
     {}
   );
 
-  const factionList: Faction[] = ['canglong', 'shuanglang', 'jinque', 'border'];
+  const factionList: Nation[] = ['canglong', 'shuanglang', 'jinque', 'border'];
 
-  const factionPowers: FactionPowerInfo[] = factionList
+  const factionPowers: NationPowerInfo[] = factionList
     .filter(f => factions[f])
     .map(f => {
       const data = factions[f]!;
@@ -247,12 +247,12 @@ export async function getFactionPowerBalance(): Promise<PowerBalanceReport> {
 
       return {
         faction: f,
-        name: FactionNames[f],
+        name: NationNames[f],
         military,
         economy,
         stability,
         influence,
-        totalPower: calculateFactionPower({ military, economy, stability, influence }),
+        totalPower: calculateNationPower({ military, economy, stability, influence }),
         powerRank: 0,
       };
     })
@@ -276,8 +276,8 @@ export async function getFactionPowerBalance(): Promise<PowerBalanceReport> {
   return {
     factions: factionPowers,
     powerGap,
-    dominantFaction: dominant.faction,
-    weakestFaction: weakest.faction,
+    dominantNation: dominant.faction,
+    weakestNation: weakest.faction,
     isStable: powerGap > POWER_CONFIG.struggleThreshold,
     activeStruggles: activeStruggles.length,
   };
@@ -303,8 +303,8 @@ export async function detectPowerStruggles(): Promise<PowerStruggle[]> {
     const affectedEntities = safeJsonParse<string[]>(event.affectedEntities, []);
     if (affectedEntities.length < 2) continue;
 
-    const factionA = affectedEntities[0] as Faction;
-    const factionB = affectedEntities[1] as Faction;
+    const factionA = affectedEntities[0] as Nation;
+    const factionB = affectedEntities[1] as Nation;
 
     struggles.push({
       id: event.id,
@@ -337,8 +337,8 @@ export async function resolvePowerStruggle(struggleId: string): Promise<boolean>
   const affectedEntities = safeJsonParse<string[]>(event.affectedEntities, []);
   if (affectedEntities.length < 2) return false;
 
-  const factionA = affectedEntities[0] as Faction;
-  const factionB = affectedEntities[1] as Faction;
+  const factionA = affectedEntities[0] as Nation;
+  const factionB = affectedEntities[1] as Nation;
 
   // 获取当前权力值
   const worldState = await prisma.worldState.findFirst({ orderBy: { day: 'desc' } });
@@ -349,8 +349,8 @@ export async function resolvePowerStruggle(struggleId: string): Promise<boolean>
     {}
   );
 
-  const powerA = calculateFactionPower(factions[factionA] ?? { military: 50, economy: 50, stability: 50, influence: 50 });
-  const powerB = calculateFactionPower(factions[factionB] ?? { military: 50, economy: 50, stability: 50, influence: 50 });
+  const powerA = calculateNationPower(factions[factionA] ?? { military: 50, economy: 50, stability: 50, influence: 50 });
+  const powerB = calculateNationPower(factions[factionB] ?? { military: 50, economy: 50, stability: 50, influence: 50 });
 
   const winner = powerA >= powerB ? factionA : factionB;
   const loser = winner === factionA ? factionB : factionA;
@@ -362,13 +362,13 @@ export async function resolvePowerStruggle(struggleId: string): Promise<boolean>
       { role: 'system' as const, content: '你是一位历史学家，请根据以下信息生成一段简短的权力斗争解决叙述（100字以内）。' },
       {
         role: 'user' as const,
-        content: `${FactionNames[winner]} 在与 ${FactionNames[loser]} 的权力斗争中获胜。斗争类型: ${event.title}。请生成一段叙述。`
+        content: `${NationNames[winner]} 在与 ${NationNames[loser]} 的权力斗争中获胜。斗争类型: ${event.title}。请生成一段叙述。`
       },
     ];
     const response = await llmService.generate({ messages, maxTokens: 200 });
     narrative = response.content;
   } catch {
-    narrative = `${FactionNames[winner]} 在此次权力斗争中胜出，${FactionNames[loser]} 势力受到削弱。`;
+    narrative = `${NationNames[winner]} 在此次权力斗争中胜出，${NationNames[loser]} 势力受到削弱。`;
   }
 
   // 更新事件状态
@@ -377,37 +377,37 @@ export async function resolvePowerStruggle(struggleId: string): Promise<boolean>
     data: {
       status: 'completed',
       narrativeText: narrative,
-      description: `${event.description} | 结果: ${FactionNames[winner]} 获胜`,
+      description: `${event.description} | 结果: ${NationNames[winner]} 获胜`,
     },
   });
 
   // 更新世界状态中的权力值
-  const updatedFactions = { ...factions };
+  const updatedNations = { ...factions };
 
   // 赢家获得权力加成
-  if (updatedFactions[winner]) {
-    updatedFactions[winner] = {
-      ...updatedFactions[winner]!,
-      military: (updatedFactions[winner]!.military ?? 50) + POWER_CONFIG.winnerGain,
-      stability: (updatedFactions[winner]!.stability ?? 50) + 2,
+  if (updatedNations[winner]) {
+    updatedNations[winner] = {
+      ...updatedNations[winner]!,
+      military: (updatedNations[winner]!.military ?? 50) + POWER_CONFIG.winnerGain,
+      stability: (updatedNations[winner]!.stability ?? 50) + 2,
     };
   }
 
   // 输家失去权力和稳定性
-  if (updatedFactions[loser]) {
-    updatedFactions[loser] = {
-      ...updatedFactions[loser]!,
-      military: Math.max(0, (updatedFactions[loser]!.military ?? 50) - POWER_CONFIG.loserLoss),
-      stability: Math.max(0, (updatedFactions[loser]!.stability ?? 50) - POWER_CONFIG.loserStabilityLoss),
+  if (updatedNations[loser]) {
+    updatedNations[loser] = {
+      ...updatedNations[loser]!,
+      military: Math.max(0, (updatedNations[loser]!.military ?? 50) - POWER_CONFIG.loserLoss),
+      stability: Math.max(0, (updatedNations[loser]!.stability ?? 50) - POWER_CONFIG.loserStabilityLoss),
     };
   }
 
   await prisma.worldState.update({
     where: { day: worldState.day },
-    data: { factions: safeJsonStringify(updatedFactions) },
+    data: { factions: safeJsonStringify(updatedNations) },
   });
 
-  console.log(`[Power] 斗争解决: ${FactionNames[winner]} 战胜 ${FactionNames[loser]}`);
+  console.log(`[Power] 斗争解决: ${NationNames[winner]} 战胜 ${NationNames[loser]}`);
 
   return true;
 }
@@ -417,8 +417,8 @@ export async function resolvePowerStruggle(struggleId: string): Promise<boolean>
  */
 async function generateStruggleEvent(
   struggle: PowerStruggle,
-  factionA: FactionPowerInfo,
-  factionB: FactionPowerInfo
+  factionA: NationPowerInfo,
+  factionB: NationPowerInfo
 ): Promise<void> {
   let narrative = '';
   try {
@@ -457,25 +457,25 @@ async function generateStruggleEvent(
  * 基于斗争结果重组权力结构
  */
 async function reorganizePowerStructures(
-  factionPowers: FactionPowerInfo[],
-  factionList: Faction[],
-  currentFactions: Record<string, { military: number; economy: number; stability: number; influence: number }>
+  factionPowers: NationPowerInfo[],
+  factionList: Nation[],
+  currentNations: Record<string, { military: number; economy: number; stability: number; influence: number }>
 ): Promise<void> {
   const worldState = await prisma.worldState.findFirst({ orderBy: { day: 'desc' } });
   if (!worldState) return;
 
-  const updatedFactions: Record<string, { military: number; economy: number; stability: number; influence: number }> = {
-    ...currentFactions,
+  const updatedNations: Record<string, { military: number; economy: number; stability: number; influence: number }> = {
+    ...currentNations,
   };
 
-  // 对每个派系进行稳定性调整
+  // 对每个国家进行稳定性调整
   for (const faction of factionList) {
-    if (!updatedFactions[faction]) continue;
+    if (!updatedNations[faction]) continue;
 
-    const current = updatedFactions[faction]!;
+    const current = updatedNations[faction]!;
     const stability = current.stability ?? 50;
 
-    // 权力排名靠前的派系稳定性上升，靠后的下降
+    // 权力排名靠前的国家稳定性上升，靠后的下降
     const powerInfo = factionPowers.find(fp => fp.faction === faction);
     if (powerInfo) {
       if (powerInfo.powerRank === 1) {
@@ -487,11 +487,11 @@ async function reorganizePowerStructures(
       }
     }
 
-    updatedFactions[faction] = current;
+    updatedNations[faction] = current;
   }
 
   await prisma.worldState.update({
     where: { day: worldState.day },
-    data: { factions: safeJsonStringify(updatedFactions) },
+    data: { factions: safeJsonStringify(updatedNations) },
   });
 }

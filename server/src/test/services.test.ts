@@ -1,13 +1,13 @@
 /**
  * Backend Services Unit Tests
- * Tests for economyService, factionService, skillService, conflictService
+ * Tests for economyService, nationService, skillService, conflictService
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Import pure functions (not async DB ones) from services
 import { calculateSocialTier, ECONOMY_CONFIG } from '../services/economyService'
-import { getFactionLevel, FACTION_TIERS, TIER_REPUTATION_BONUS } from '../services/factionService'
+import { getNationLevel, NATION_TIERS, TIER_REPUTATION_BONUS } from '../services/nationService'
 import {
   EXP_PER_LEVEL,
   SKILL_PREREQUISITES,
@@ -122,47 +122,47 @@ describe('economyService', () => {
 })
 
 // ============================================
-// Faction Service Tests
+// Nation Service Tests
 // ============================================
 
-describe('factionService', () => {
-  describe('getFactionLevel', () => {
+describe('nationService', () => {
+  describe('getNationLevel', () => {
     it('should return stranger for negative reputation', () => {
-      expect(getFactionLevel(-50)).toBe('stranger')
-      expect(getFactionLevel(-1)).toBe('stranger')
+      expect(getNationLevel(-50)).toBe('stranger')
+      expect(getNationLevel(-1)).toBe('stranger')
     })
 
     it('should return neutral for zero to low reputation', () => {
-      expect(getFactionLevel(0)).toBe('neutral')
-      expect(getFactionLevel(10)).toBe('neutral')
-      expect(getFactionLevel(19)).toBe('neutral')
+      expect(getNationLevel(0)).toBe('neutral')
+      expect(getNationLevel(10)).toBe('neutral')
+      expect(getNationLevel(19)).toBe('neutral')
     })
 
     it('should return friendly for moderate reputation', () => {
-      expect(getFactionLevel(20)).toBe('friendly')
-      expect(getFactionLevel(30)).toBe('friendly')
-      expect(getFactionLevel(39)).toBe('friendly')
+      expect(getNationLevel(20)).toBe('friendly')
+      expect(getNationLevel(30)).toBe('friendly')
+      expect(getNationLevel(39)).toBe('friendly')
     })
 
     it('should return loyal for good reputation', () => {
-      expect(getFactionLevel(40)).toBe('loyal')
-      expect(getFactionLevel(50)).toBe('loyal')
-      expect(getFactionLevel(59)).toBe('loyal')
+      expect(getNationLevel(40)).toBe('loyal')
+      expect(getNationLevel(50)).toBe('loyal')
+      expect(getNationLevel(59)).toBe('loyal')
     })
 
     it('should return core for high reputation', () => {
-      expect(getFactionLevel(60)).toBe('core')
-      expect(getFactionLevel(70)).toBe('core')
-      expect(getFactionLevel(79)).toBe('core')
+      expect(getNationLevel(60)).toBe('core')
+      expect(getNationLevel(70)).toBe('core')
+      expect(getNationLevel(79)).toBe('core')
     })
 
     it('should return legendary for very high reputation', () => {
-      expect(getFactionLevel(80)).toBe('legendary')
-      expect(getFactionLevel(100)).toBe('legendary')
+      expect(getNationLevel(80)).toBe('legendary')
+      expect(getNationLevel(100)).toBe('legendary')
     })
 
     it('should have monotonically increasing thresholds', () => {
-      const thresholds = FACTION_TIERS.map(t => t.minRep)
+      const thresholds = NATION_TIERS.map(t => t.minRep)
       for (let i = 1; i < thresholds.length; i++) {
         expect(thresholds[i]).toBeGreaterThan(thresholds[i - 1])
       }

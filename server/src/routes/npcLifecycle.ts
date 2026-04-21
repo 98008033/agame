@@ -10,7 +10,7 @@ import {
   calculateAgingEffects,
   type LifeStage,
   type DeathType,
-  FactionInheritanceRules,
+  NationInheritanceRules,
   LifeStageNames,
   DeathTypeNames,
 } from '../types/npcLifecycle.js';
@@ -167,7 +167,7 @@ router.get('/:npcId/lifecycle', async (req: Request, res: Response): Promise<voi
         canInherit: npc.role === 'key' || npc.role === 'important',
         hasDesignatedHeir: (currentStatus['heir'] as string) != null,
         heirPriority: getHeirPriorityList(npc.faction ?? 'border'),
-        factionRules: FactionInheritanceRules[npc.faction ?? 'border'],
+        factionRules: NationInheritanceRules[npc.faction ?? 'border'],
       },
     }, requestId));
   } catch (err) {
@@ -464,7 +464,7 @@ router.get('/:npcId/heirs', async (req: Request, res: Response): Promise<void> =
 
     // Find potential heirs by type
     const faction = npc.faction ?? 'border';
-    const rules = FactionInheritanceRules[faction] ?? FactionInheritanceRules['border'];
+    const rules = NationInheritanceRules[faction] ?? NationInheritanceRules['border'];
 
     // MVP: Simplified heir finding - just return a structure
     const heirs = {
@@ -536,7 +536,7 @@ function estimateLifespan(age: number, health: number): number {
 }
 
 function getHeirPriorityList(faction: string): string[] {
-  const rules = FactionInheritanceRules[faction];
+  const rules = NationInheritanceRules[faction];
   const priorities: string[] = ['指定继承人', '直系血亲', '师徒/门生', '副手/下属'];
   if (rules?.requiresElection) {
     priorities.push('选举竞争');

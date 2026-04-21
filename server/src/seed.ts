@@ -2,7 +2,7 @@
 // 初始化游戏世界数据
 
 import prisma from './models/prisma.js';
-import { DEFAULT_PLAYER_ATTRIBUTES, DEFAULT_SKILL_SET, type Faction, type NPCType, type NPCRole } from './types/game.js';
+import { DEFAULT_PLAYER_ATTRIBUTES, DEFAULT_SKILL_SET, type Nation, type NPCType, type NPCRole } from './types/game.js';
 
 async function main(): Promise<void> {
   console.log('🌱 Starting database seeding...');
@@ -54,6 +54,11 @@ async function main(): Promise<void> {
             jinque: 'neutral',
             border: 'hostile',
           },
+          internalFactions: {
+            tianshu: { name: '天枢派', description: '保守派，维护传统秩序与礼法', influence: 40, memberCount: 0 },
+            pojun: { name: '破军派', description: '军事派，崇尚武力与征伐', influence: 35, memberCount: 0 },
+            wenqu: { name: '文曲派', description: '学术派，追求知识与文化', influence: 25, memberCount: 0 },
+          },
         },
         shuanglang: {
           name: '霜狼联邦',
@@ -66,6 +71,10 @@ async function main(): Promise<void> {
             canglong: 'tension',
             jinque: 'friendly',
             border: 'neutral',
+          },
+          internalFactions: {
+            reform: { name: '改革派', description: '主张变革与创新', influence: 45, memberCount: 0 },
+            tradition: { name: '传统派', description: '坚守祖先之法', influence: 55, memberCount: 0 },
           },
         },
         jinque: {
@@ -80,6 +89,10 @@ async function main(): Promise<void> {
             shuanglang: 'friendly',
             border: 'friendly',
           },
+          internalFactions: {
+            noble: { name: '贵族党', description: '代表世家大族利益', influence: 50, memberCount: 0 },
+            commoner: { name: '平民党', description: '为普通民众发声', influence: 50, memberCount: 0 },
+          },
         },
         border: {
           name: '边境联盟',
@@ -92,6 +105,11 @@ async function main(): Promise<void> {
             canglong: 'hostile',
             shuanglang: 'neutral',
             jinque: 'friendly',
+          },
+          internalFactions: {
+            merchant: { name: '商会', description: '以贸易与财富为核心', influence: 35, memberCount: 0 },
+            mercenary: { name: '佣兵', description: '武力至上的自由组织', influence: 30, memberCount: 0 },
+            autonomy: { name: '自治派', description: '追求边境独立自治', influence: 35, memberCount: 0 },
           },
         },
       }),
@@ -147,7 +165,7 @@ async function main(): Promise<void> {
       gender: string;
       type: NPCType;
       role: NPCRole;
-      faction: Faction;
+      faction: Nation;
       factionPosition: string;
       attributes: Record<string, number>;
       skills: Record<string, unknown>;
@@ -161,7 +179,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'leader' as NPCType,
       role: 'key' as NPCRole,
-      faction: 'canglong' as Faction,
+      faction: 'canglong' as Nation,
       factionPosition: '大皇子',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -193,7 +211,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'leader' as NPCType,
       role: 'key' as NPCRole,
-      faction: 'shuanglang' as Faction,
+      faction: 'shuanglang' as Nation,
       factionPosition: '联邦首领',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -225,7 +243,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'official' as NPCType,
       role: 'key' as NPCRole,
-      faction: 'jinque' as Faction,
+      faction: 'jinque' as Nation,
       factionPosition: '王国首辅',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -257,7 +275,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'villager' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'border' as Faction,
+      faction: 'border' as Nation,
       factionPosition: '暮光村村长',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -425,7 +443,7 @@ async function main(): Promise<void> {
     gender: string;
     type: NPCType;
     role: NPCRole;
-    faction: Faction | null;
+    faction: Nation | null;
     factionPosition: string | null;
     attributes: Record<string, number>;
     skills: Record<string, unknown>;
@@ -440,7 +458,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'soldier' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'canglong' as Faction,
+      faction: 'canglong' as Nation,
       factionPosition: '御林军统领',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -460,7 +478,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'merchant' as NPCType,
       role: 'common' as NPCRole,
-      faction: 'canglong' as Faction,
+      faction: 'canglong' as Nation,
       factionPosition: null,
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -479,7 +497,7 @@ async function main(): Promise<void> {
       gender: 'female',
       type: 'adventurer' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'shuanglang' as Faction,
+      faction: 'shuanglang' as Nation,
       factionPosition: '先锋队长',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -498,7 +516,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'scholar' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'shuanglang' as Faction,
+      faction: 'shuanglang' as Nation,
       factionPosition: '部落长老',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -517,7 +535,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'merchant' as NPCType,
       role: 'key' as NPCRole,
-      faction: 'jinque' as Faction,
+      faction: 'jinque' as Nation,
       factionPosition: '花城银行行长',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -536,7 +554,7 @@ async function main(): Promise<void> {
       gender: 'female',
       type: 'scholar' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'jinque' as Faction,
+      faction: 'jinque' as Nation,
       factionPosition: '炼金学院教授',
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -555,7 +573,7 @@ async function main(): Promise<void> {
       gender: 'male',
       type: 'adventurer' as NPCType,
       role: 'important' as NPCRole,
-      faction: 'border' as Faction,
+      faction: 'border' as Nation,
       factionPosition: null,
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -574,7 +592,7 @@ async function main(): Promise<void> {
       gender: 'female',
       type: 'merchant' as NPCType,
       role: 'common' as NPCRole,
-      faction: 'border' as Faction,
+      faction: 'border' as Nation,
       factionPosition: null,
       attributes: {
         ...DEFAULT_PLAYER_ATTRIBUTES,
@@ -713,12 +731,12 @@ async function main(): Promise<void> {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 3);
 
-    // Faction invite event
+    // Nation invite event
     await prisma.event.create({
       data: {
         id: `seed_event_invite_${player.id.slice(0, 8)}`,
         playerId: player.id,
-        type: 'faction_invite',
+        type: 'nation_invite',
         category: '效忠选择',
         title: '边境使者的邀请',
         description: '三位来自不同阵营的使者同时出现在暮光村，各自邀请你加入他们的阵营。',

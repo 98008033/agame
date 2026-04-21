@@ -1,12 +1,12 @@
 // Game Domain Types - Based on docs/data-structures.md
 
 // ============================================
-// Faction Types
+// Nation Types
 // ============================================
 
-export type Faction = 'canglong' | 'shuanglang' | 'jinque' | 'border';
+export type Nation = 'canglong' | 'shuanglang' | 'jinque' | 'border';
 
-export const FactionNames: Record<Faction, string> = {
+export const NationNames: Record<Nation, string> = {
   canglong: '苍龙帝国',
   shuanglang: '霜狼联邦',
   jinque: '金雀花王国',
@@ -54,10 +54,10 @@ export function getRelationshipLevel(value: number): RelationshipLevel {
 }
 
 // ============================================
-// Faction Level Types
+// Nation Level Types
 // ============================================
 
-export type FactionLevel =
+export type NationLevel =
   | 'stranger'
   | 'neutral'
   | 'friendly'
@@ -65,7 +65,7 @@ export type FactionLevel =
   | 'core'
   | 'legendary';
 
-export const FactionLevelNames: Record<FactionLevel, string> = {
+export const NationLevelNames: Record<NationLevel, string> = {
   stranger: '疏离',
   neutral: '中立',
   friendly: '友好',
@@ -88,7 +88,7 @@ export type EventType =
   | 'npc_request';
 
 export type EventCategory =
-  | 'faction_invite'
+  | 'nation_invite'
   | 'resource_dilemma'
   | 'personal_conflict'
   | 'crisis_response'
@@ -167,22 +167,87 @@ export const DEFAULT_PLAYER_ATTRIBUTES: PlayerAttributes = {
 };
 
 // ============================================
-// Faction Reputation
+// Nation Reputation
 // ============================================
 
-export interface FactionReputation {
+export interface NationReputation {
   canglong: number;    // -100 ~ +100
   shuanglang: number;
   jinque: number;
   border: number;
 }
 
-export const DEFAULT_FACTION_REPUTATION: FactionReputation = {
+export const DEFAULT_NATION_REPUTATION: NationReputation = {
   canglong: 0,
   shuanglang: 0,
   jinque: 0,
   border: 20, // 边境联盟初始友好
 };
+
+// ============================================
+// Internal Faction (派系) Types
+// ============================================
+
+export type InternalFaction =
+  | 'tianshu' | 'pojun' | 'wenqu'    // 苍龙
+  | 'reform' | 'tradition'           // 霜狼
+  | 'noble' | 'commoner'             // 金雀花
+  | 'merchant' | 'mercenary' | 'autonomy'; // 边境
+
+export const InternalFactionNames: Record<InternalFaction, string> = {
+  tianshu: '天枢派', pojun: '破军派', wenqu: '文曲派',
+  reform: '改革派', tradition: '传统派',
+  noble: '贵族党', commoner: '平民党',
+  merchant: '商会', mercenary: '佣兵', autonomy: '自治派',
+};
+
+export const InternalFactionDescriptions: Record<InternalFaction, string> = {
+  tianshu: '保守派，维护传统秩序与礼法',
+  pojun: '军事派，崇尚武力与征伐',
+  wenqu: '学术派，追求知识与文化',
+  reform: '改革派，主张变革与创新',
+  tradition: '传统派，坚守祖先之法',
+  noble: '贵族党，代表世家大族利益',
+  commoner: '平民党，为普通民众发声',
+  merchant: '商会，以贸易与财富为核心',
+  mercenary: '佣兵，武力至上的自由组织',
+  autonomy: '自治派，追求边境独立自治',
+};
+
+// 派系与国家映射
+export const NationFactions: Record<Nation, InternalFaction[]> = {
+  canglong: ['tianshu', 'pojun', 'wenqu'],
+  shuanglang: ['reform', 'tradition'],
+  jinque: ['noble', 'commoner'],
+  border: ['merchant', 'mercenary', 'autonomy'],
+};
+
+// 派系等级
+export type InternalFactionLevel =
+  | 'stranger' | 'neutral' | 'friendly' | 'loyal' | 'core' | 'legendary';
+
+export const InternalFactionLevelNames: Record<InternalFactionLevel, string> = {
+  stranger: '疏离',
+  neutral: '中立',
+  friendly: '友好',
+  loyal: '效忠',
+  core: '核心',
+  legendary: '传奇',
+};
+
+export function getInternalFactionLevel(value: number): InternalFactionLevel {
+  if (value >= 90) return 'legendary';
+  if (value >= 70) return 'core';
+  if (value >= 40) return 'loyal';
+  if (value >= 15) return 'friendly';
+  if (value >= -15) return 'neutral';
+  return 'stranger';
+}
+
+// 派系声望（独立于国家声望）
+export interface InternalFactionReputation {
+  [factionId: string]: number; // -100 ~ +100
+}
 
 // ============================================
 // Player Resources
@@ -210,7 +275,7 @@ export const DEFAULT_PLAYER_RESOURCES: PlayerResources = {
 export interface PlayerLocation {
   region: string;
   city: string | null;
-  faction: Faction;
+  faction: Nation;
   coordinates?: { x: number; y: number };
   isMoving: boolean;
   destination?: {
@@ -292,7 +357,7 @@ export const DEFAULT_SKILL_SET: SkillSet = {
 // Validation Helpers
 // ============================================
 
-export function isValidFaction(value: string): value is Faction {
+export function isValidNation(value: string): value is Nation {
   return ['canglong', 'shuanglang', 'jinque', 'border'].includes(value);
 }
 
@@ -372,7 +437,7 @@ export interface ActionDefinition {
 }
 
 export interface ActionRequirement {
-  type: 'level' | 'skill' | 'resource' | 'relationship' | 'location' | 'faction';
+  type: 'level' | 'skill' | 'resource' | 'relationship' | 'location' | 'nation';
   value: number | string;
   description: string;
 }
@@ -382,7 +447,7 @@ export interface ActionReward {
   skillExp?: Record<string, number>;
   relationship?: { npcId: string; value: number };
   attributes?: Partial<PlayerAttributes>;
-  reputation?: Partial<FactionReputation>;
+  reputation?: Partial<NationReputation>;
   narrative: string;
   possibleEvent?: string;
 }

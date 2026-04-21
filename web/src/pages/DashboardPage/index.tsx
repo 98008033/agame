@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useGameStore } from '../../stores/gameStore'
 import { actionApi, playerApi } from '../../services'
-import { UserAvatarMenu, LanguageSwitcher } from '../../components'
+import { UserAvatarMenu, LanguageSwitcher, DashboardEntryCard } from '../../components'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -88,7 +88,8 @@ export default function DashboardPage() {
     { id: 'actions', title: t('dashboard.quickEntries.actions'), icon: '🎯', path: '/actions', accent: 'var(--accent-purple)' },
     { id: 'dialog', title: t('dashboard.quickEntries.dialog'), icon: '💬', path: '/dialog', accent: 'var(--accent-blue)' },
     { id: 'event-history', title: t('dashboard.quickEntries.eventHistory'), icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
-    { id: 'factions', title: t('dashboard.quickEntries.factions'), icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
+    { id: 'factions', title: t('dashboard.quickEntries.factions'), icon: '🏯', path: '/factions', accent: 'var(--faction-canglong)' },
+    { id: 'nations', title: t('dashboard.quickEntries.nations'), icon: '🏰', path: '/nations', accent: 'var(--accent-gold)' },
     { id: 'map', title: t('dashboard.quickEntries.map'), icon: '🗺️', path: '/map', accent: 'var(--accent-green)' },
     { id: 'skills', title: t('dashboard.quickEntries.skills'), icon: '🌳', path: '/skills', accent: 'var(--accent-gold)' },
   ] : []
@@ -124,7 +125,7 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container-wide py-6">
+      <main className="max-w-[1200px] mx-auto px-4 py-6">
         {/* AP状态 - 仅在有角色时显示 */}
         {hasCharacter && apStatus && (
           <section className="mb-6">
@@ -197,20 +198,18 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {modules.map((mod) => (
-              <button
+              <DashboardEntryCard
                 key={mod.id}
-                onClick={() => navigate(mod.path)}
-                className={`card-modern text-left ${
-                  mod.highlight ? 'col-span-2 ring-2 ring-[var(--accent-purple)]/50 bg-[var(--accent-purple)]/10' : ''
-                }`}
-                style={{ borderColor: mod.highlight ? mod.accent : undefined }}
-              >
-                <span className="text-3xl mb-3 block">{mod.icon}</span>
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-1 font-display">{mod.title}</h4>
-                <p className="text-[var(--text-secondary)] text-sm">{mod.desc}</p>
-              </button>
+                icon={mod.icon}
+                title={mod.title}
+                description={mod.desc}
+                accent={mod.accent}
+                path={mod.path}
+                priority={mod.highlight ? 'high' : 'normal'}
+                size="large"
+              />
             ))}
           </div>
         </section>
@@ -219,17 +218,16 @@ export default function DashboardPage() {
         {hasCharacter && quickEntries.length > 0 && (
           <section className="mt-8">
             <h3 className="text-[var(--text-secondary)] font-medium mb-4">{t('dashboard.quickEntries.title')}</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               {quickEntries.map((entry) => (
-                <button
+                <DashboardEntryCard
                   key={entry.id}
-                  onClick={() => navigate(entry.path)}
-                  className="card-modern text-center hover:scale-[1.02] transition-all"
-                  style={{ borderColor: entry.accent + '60' }}
-                >
-                  <span className="text-2xl block mb-1">{entry.icon}</span>
-                  <span className="font-medium text-[var(--text-primary)] font-display">{entry.title}</span>
-                </button>
+                  icon={entry.icon}
+                  title={entry.title}
+                  accent={entry.accent}
+                  path={entry.path}
+                  size="compact"
+                />
               ))}
             </div>
           </section>
@@ -257,20 +255,25 @@ export default function DashboardPage() {
 
         {/* Quick Stats */}
         <section className="mt-8">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.gold')}</p>
-              <p className="text-[var(--accent-gold)] font-bold text-xl">{player?.resources?.gold || 0}</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className="text-xl block mb-1">💰</span>
+              <p className="text-[var(--accent-gold)] font-bold text-lg">{player?.resources?.gold || 0}</p>
+              <p className="text-[var(--text-muted)] text-xs">{t('dashboard.stats.gold')}</p>
             </div>
-            <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.pendingEvents')}</p>
-              <p className="text-[var(--accent-red)] font-bold text-xl">0</p>
-            </div>
-            <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.factionReputation')}</p>
-              <p className="text-[var(--accent-green)] font-bold text-xl">
-                {player?.factionLevel === 'friendly' ? t('dashboard.stats.reputation_friendly') : player?.factionLevel || t('dashboard.stats.reputation_neutral')}
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className="text-xl block mb-1">📬</span>
+              <p className="text-[var(--accent-red)] font-bold text-lg">
+                {player?.pendingEventsCount && player.pendingEventsCount > 0 ? `${player.pendingEventsCount} 个` : '暂无'}
               </p>
+              <p className="text-[var(--text-muted)] text-xs">{t('dashboard.stats.pendingEvents')}</p>
+            </div>
+            <div className="rounded-lg p-3 text-center" style={{ background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <span className="text-xl block mb-1">🛡️</span>
+              <p className="text-[var(--accent-green)] font-bold text-lg">
+                {player?.faction ? `${player.faction}` : '未加入'}
+              </p>
+              <p className="text-[var(--text-muted)] text-xs">{t('dashboard.stats.factionReputation')}</p>
             </div>
           </div>
         </section>
