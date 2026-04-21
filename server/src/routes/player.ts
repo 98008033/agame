@@ -12,6 +12,7 @@ import {
   checkSkillUnlock,
   getSkill,
   setSkill,
+  getExpForNextLevel,
 } from '../services/skillService.js';
 import { DEFAULT_SKILL_SET, type SkillSet } from '../types/game.js';
 
@@ -351,9 +352,14 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
         if (current) {
           let newExp = current.experience + exp;
           let newLevel = current.level;
-          while (newLevel < 10 && newExp >= [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 12000, 99999][newLevel]!) {
-            newExp -= [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 12000, 99999][newLevel]!;
-            newLevel++;
+          while (newLevel < 10) {
+            const required = getExpForNextLevel(newLevel);
+            if (newExp >= required) {
+              newExp -= required;
+              newLevel++;
+            } else {
+              break;
+            }
           }
           if (newLevel >= 10) newExp = 0;
           setSkill(skillSet, skillPath, { ...current, level: newLevel, experience: newExp });
