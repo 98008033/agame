@@ -11,6 +11,7 @@ import {
   getSkillExpHistory,
   checkSkillUnlock,
   getSkill,
+  setSkill,
 } from '../services/skillService.js';
 import { DEFAULT_SKILL_SET, type SkillSet } from '../types/game.js';
 
@@ -310,7 +311,9 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
           break;
         }
         case 'skill': {
-          skillExpGained['combat'] = (skillExpGained['combat'] ?? 0) + con.value;
+          // con.value = EXP amount, con.target = skill path (e.g. "survival", "combat.combatTechnique")
+          const skillPath = con.target ?? 'survival';
+          skillExpGained[skillPath] = (skillExpGained[skillPath] ?? 0) + con.value;
           break;
         }
         case 'event': {
@@ -339,14 +342,24 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
 
     const newTags = [...new Set([...currentTags, ...tagsAdded])];
 
-    // Build skill update if any EXP gained
+    // Apply skill EXP gains
     let newSkills = currentSkills;
     if (Object.keys(skillExpGained).length > 0) {
-      newSkills = { ...currentSkills };
-      for (const [skillName, exp] of Object.entries(skillExpGained)) {
-        // Simple skill EXP tracking at top level
-        (newSkills as Record<string, unknown>)[`${skillName}_exp`] = ((newSkills as Record<string, unknown>)[`${skillName}_exp`] as number ?? 0) + exp;
+      const skillSet = safeJsonParse<SkillSet>(player.skills, DEFAULT_SKILL_SET);
+      for (const [skillPath, exp] of Object.entries(skillExpGained)) {
+        const current = getSkill(skillSet, skillPath);
+        if (current) {
+          let newExp = current.experience + exp;
+          let newLevel = current.level;
+          while (newLevel < 10 && newExp >= [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 12000, 99999][newLevel]!) {
+            newExp -= [0, 100, 250, 500, 1000, 2000, 3500, 5500, 8000, 12000, 99999][newLevel]!;
+            newLevel++;
+          }
+          if (newLevel >= 10) newExp = 0;
+          setSkill(skillSet, skillPath, { ...current, level: newLevel, experience: newExp });
+        }
       }
+      newSkills = safeJsonParse<Record<string, unknown>>(safeJsonStringify(skillSet), {});
     }
 
     // Update player record
@@ -471,7 +484,7 @@ router.get('/skills/unlock-status', async (req: Request, res: Response): Promise
     }
 
     const skillSet = safeJsonParse<SkillSet>(player.skills, DEFAULT_SKILL_SET);
-    const unlockStatus: Record<string, { unlocked: boolean; reason?: string }> = {};
+    const unlockStatus: Record<string, { unlocked: boolean; canUnlock: boolean; reason?: string }> = {};
 
     // Check all skills
     const skillPaths = [

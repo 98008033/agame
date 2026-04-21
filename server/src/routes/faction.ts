@@ -6,7 +6,6 @@ import { createSuccessResponse, createErrorResponse, generateRequestId } from '.
 import { isValidFaction, getRelationshipLevel } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import {
-  getFactionLevel,
   getPlayerFactionReputation,
   getFactionMembers,
   getFactionRankings,
