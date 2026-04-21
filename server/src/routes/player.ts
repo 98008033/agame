@@ -14,6 +14,7 @@ import {
   setSkill,
   getExpForNextLevel,
 } from '../services/skillService.js';
+import { snapshotBeforeDecision, recordDecisionImpact, getDecisionImpact, getPlayerImpactTimeline } from '../services/impactTracker.js';
 import { DEFAULT_SKILL_SET, type SkillSet } from '../types/game.js';
 
 const router = Router();
@@ -263,6 +264,9 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Capture state before decision
+    const stateBefore = await snapshotBeforeDecision(playerId);
+
     const currentAttributes = safeJsonParse<Record<string, number>>(player.attributes, {});
     const currentResources = safeJsonParse<Record<string, number>>(player.resources, {});
     const currentReputation = safeJsonParse<Record<string, number>>(player.reputation, {});
@@ -390,6 +394,7 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
         consequences: safeJsonStringify(consequences),
         context: safeJsonStringify({
           playerLevel: player.level,
+          snapshotBefore: stateBefore,
           attributeChanges,
           resourceChanges,
           reputationChanges,
@@ -401,6 +406,9 @@ router.post('/decision', async (req: Request, res: Response): Promise<void> => {
     });
 
     await prisma.event.update({ where: { id: eventId }, data: { status: 'completed' } });
+
+    // Record decision impact (state before/after)
+    await recordDecisionImpact(playerId, decision.id, eventId, stateBefore);
 
     const narrativeFeedback = (choice['narrativeOutcome'] as string) ?? narrativeParts.join(' ') ?? '决策已执行';
 
@@ -574,3 +582,58 @@ router.get('/skills/history', async (req: Request, res: Response): Promise<void>
 });
 
 export default router;
+
+// ============================================
+// Impact Tracking Endpoints
+// ============================================
+
+// GET /v1/player/decisions/:id/impact - 查询单个决策的后续影响
+router.get('/decisions/:id/impact', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const decisionId = parseInt(req.params['id']);
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  if (isNaN(decisionId)) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的决策ID', requestId));
+    return;
+  }
+
+  try {
+    const impact = await getDecisionImpact(playerId, decisionId);
+    if (!impact) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', '决策不存在', requestId));
+      return;
+    }
+    res.json(createSuccessResponse({ impact }, requestId));
+  } catch (err) {
+    console.error('[Decision Impact Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取决策影响失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/player/impact-timeline - 获取玩家影响时间线
+router.get('/impact-timeline', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100);
+  const offset = parseInt(req.query['offset'] as string) || 0;
+
+  try {
+    const { timeline, total } = await getPlayerImpactTimeline(playerId, limit, offset);
+    res.json(createSuccessResponse({ timeline, total, pagination: { limit, offset, hasMore: offset + limit < total } }, requestId));
+  } catch (err) {
+    console.error('[Impact Timeline Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取影响时间线失败', requestId, undefined, true));
+  }
+});

@@ -32,10 +32,14 @@ export function useWebSocket() {
 
   const currentDay = useGameStore((s) => s.currentDay)
   const setActiveEvents = useEventStore((s) => s.setActiveEvents)
+  const player = usePlayerStore((s) => s.player)
 
   // Stable refs to avoid recreating connect/disconnect on every state change
   const connectRef = useRef<(() => void) | null>(null)
   const disconnectRef = useRef<(() => void) | null>(null)
+
+  // 当前订阅的频道
+  const subscribedChannels = useRef<Set<string>>(new Set())
 
   // 计算重连延迟（指数退避）
   const getReconnectDelay = useCallback(() => {
