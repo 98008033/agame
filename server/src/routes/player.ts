@@ -6,6 +6,13 @@ import { createSuccessResponse, createErrorResponse, generateRequestId } from '.
 import { getRelationshipLevel, clampAttribute, clampReputation, type FactionReputation } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
 import type { EventConsequence } from '../types/eventTemplates.js';
+import {
+  gainSkillExp,
+  getSkillExpHistory,
+  checkSkillUnlock,
+  getSkill,
+} from '../services/skillService.js';
+import { DEFAULT_SKILL_SET, type SkillSet } from '../types/game.js';
 
 const router = Router();
 
@@ -443,6 +450,107 @@ router.get('/history', async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     console.error('[History Error]', err);
     res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取历史记录失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/player/skills/unlock-status - 获取技能解锁状态
+router.get('/skills/unlock-status', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+      res.status(404).json(createErrorResponse('NOT_FOUND', '玩家不存在', requestId));
+      return;
+    }
+
+    const skillSet = safeJsonParse<SkillSet>(player.skills, DEFAULT_SKILL_SET);
+    const unlockStatus: Record<string, { unlocked: boolean; reason?: string }> = {};
+
+    // Check all skills
+    const skillPaths = [
+      'survival',
+      'strategy.intelligenceAnalysis',
+      'strategy.politicalManipulation',
+      'combat.combatTechnique',
+      'combat.militaryCommand',
+      'commerce.trade',
+      'commerce.industryManagement',
+    ];
+
+    for (const path of skillPaths) {
+      const check = checkSkillUnlock(skillSet, path);
+      const skill = getSkill(skillSet, path);
+      unlockStatus[path] = {
+        unlocked: skill?.unlocked ?? false,
+        canUnlock: check.unlocked && !(skill?.unlocked ?? false),
+        reason: check.reason,
+      };
+    }
+
+    res.json(createSuccessResponse({ skills: unlockStatus }, requestId));
+  } catch (err) {
+    console.error('[Skill Unlock Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取技能解锁状态失败', requestId, undefined, true));
+  }
+});
+
+// POST /v1/player/skills/:skillId/gain-exp - 技能获得EXP
+router.post('/skills/:skillId/gain-exp', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const skillId = req.params['skillId'];
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  if (!skillId) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '缺少技能ID', requestId));
+    return;
+  }
+
+  const { exp, source } = req.body;
+  if (typeof exp !== 'number' || exp <= 0) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', 'exp必须为正数', requestId));
+    return;
+  }
+
+  try {
+    const result = await gainSkillExp(playerId, skillId, exp, source ?? 'player_action');
+    res.json(createSuccessResponse(result, requestId));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '未知错误';
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', message, requestId, { skillId }));
+  }
+});
+
+// GET /v1/player/skills/history - 获取技能EXP历史
+router.get('/skills/history', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100);
+  const offset = parseInt(req.query['offset'] as string) || 0;
+
+  try {
+    const history = await getSkillExpHistory(playerId, limit, offset);
+    res.json(createSuccessResponse({ history, pagination: { limit, offset } }, requestId));
+  } catch (err) {
+    console.error('[Skill History Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取技能历史失败', requestId, undefined, true));
   }
 });
 

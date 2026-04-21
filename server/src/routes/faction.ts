@@ -5,6 +5,13 @@ import prisma from '../models/prisma.js';
 import { createSuccessResponse, createErrorResponse, generateRequestId } from '../types/api.js';
 import { isValidFaction, getRelationshipLevel } from '../types/game.js';
 import { safeJsonParse, safeJsonStringify } from '../utils/index.js';
+import {
+  getFactionLevel,
+  getPlayerFactionReputation,
+  getFactionMembers,
+  getFactionRankings,
+  interactWithFaction,
+} from '../services/factionService.js';
 
 const router = Router();
 
@@ -205,6 +212,91 @@ router.get('/:faction/reputation', async (req: Request, res: Response): Promise<
       undefined,
       true
     ));
+  }
+});
+
+// GET /v1/factions/reputation - 获取玩家所有阵营声望
+router.get('/reputation', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  try {
+    const result = await getPlayerFactionReputation(playerId);
+    res.json(createSuccessResponse(result, requestId));
+  } catch (err) {
+    console.error('[Faction Reputation Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取阵营声望失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/factions/:id/members - 获取派系成员列表
+router.get('/:id/members', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const factionParam = req.params['id'] ?? '';
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 50, 100);
+  const offset = parseInt(req.query['offset'] as string) || 0;
+
+  if (!isValidFaction(factionParam)) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的阵营ID', requestId));
+    return;
+  }
+
+  try {
+    const { members, total } = await getFactionMembers(factionParam, limit, offset);
+    res.json(createSuccessResponse({ members, total, pagination: { limit, offset, hasMore: offset + limit < total } }, requestId));
+  } catch (err) {
+    console.error('[Faction Members Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取成员列表失败', requestId, undefined, true));
+  }
+});
+
+// GET /v1/factions/rankings - 获取派系排行榜
+router.get('/rankings', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const limit = Math.min(parseInt(req.query['limit'] as string) || 100, 200);
+
+  try {
+    const { rankings } = await getFactionRankings(limit);
+    res.json(createSuccessResponse({ rankings }, requestId));
+  } catch (err) {
+    console.error('[Faction Rankings Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '获取排行榜失败', requestId, undefined, true));
+  }
+});
+
+// POST /v1/factions/:id/interact - 与派系互动（增减声誉）
+router.post('/:id/interact', async (req: Request, res: Response): Promise<void> => {
+  const requestId = req.requestId ?? generateRequestId();
+  const playerId = req.playerId;
+  const factionParam = req.params['id'] ?? '';
+
+  if (!playerId) {
+    res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
+    return;
+  }
+
+  if (!isValidFaction(factionParam)) {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '无效的阵营ID', requestId));
+    return;
+  }
+
+  const { delta, reason } = req.body;
+  if (typeof delta !== 'number') {
+    res.status(400).json(createErrorResponse('INVALID_REQUEST', '缺少delta参数', requestId));
+    return;
+  }
+
+  try {
+    const result = await interactWithFaction(playerId, factionParam, delta, reason);
+    res.json(createSuccessResponse(result, requestId));
+  } catch (err) {
+    console.error('[Faction Interact Error]', err);
+    res.status(500).json(createErrorResponse('INTERNAL_ERROR', '派系互动失败', requestId, undefined, true));
   }
 });
 

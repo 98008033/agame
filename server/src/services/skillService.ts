@@ -50,9 +50,9 @@ export const MAX_SKILL_LEVEL = 10;
 export function getSkill(skillSet: SkillSet, skillPath: string): BaseSkill | null {
   const parts = skillPath.split('.');
   if (parts.length === 1) {
-    return (skillSet as Record<string, unknown>)[parts[0]!] as BaseSkill | undefined ?? null;
+    return (skillSet as unknown as Record<string, unknown>)[parts[0]!] as BaseSkill | undefined ?? null;
   }
-  const parent = (skillSet as Record<string, unknown>)[parts[0]!] as Record<string, BaseSkill> | undefined;
+  const parent = (skillSet as unknown as Record<string, unknown>)[parts[0]!] as Record<string, BaseSkill> | undefined;
   return parent?.[parts[1]!] ?? null;
 }
 
@@ -62,7 +62,7 @@ export function getSkill(skillSet: SkillSet, skillPath: string): BaseSkill | nul
 export function setSkill(skillSet: SkillSet, skillPath: string, skill: BaseSkill): void {
   const parts = skillPath.split('.');
   if (parts.length === 1) {
-    (skillSet as Record<string, BaseSkill>)[parts[0]!] = skill;
+    (skillSet as unknown as Record<string, BaseSkill>)[parts[0]!] = skill;
   } else {
     const parent = skillSet[parts[0] as keyof SkillSet] as Record<string, BaseSkill>;
     if (parent) {

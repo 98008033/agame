@@ -180,7 +180,7 @@ export async function interactWithFaction(
   playerId: string,
   faction: Faction,
   delta: number,
-  reason: string = '玩家互动'
+  _reason: string = '玩家互动'
 ): Promise<{
   faction: string;
   previousRep: number;
