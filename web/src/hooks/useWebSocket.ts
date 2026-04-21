@@ -69,9 +69,30 @@ export function useWebSocket() {
           setStatus('disconnected')
           break
 
+        case 'subscribed':
+          // 订阅确认
+          const subData = message.data as { channel: string }
+          subscribedChannels.current.add(subData.channel)
+          console.log(`[WebSocket] Subscribed to channel: ${subData.channel}`)
+          break
+
+        case 'unsubscribed':
+          // 取消订阅确认
+          const unsubData = message.data as { channel: string }
+          subscribedChannels.current.delete(unsubData.channel)
+          break
+
         case 'event_new':
-          // 新事件推送
-          const eventData = message.data as { id: string; title: string; description: string; faction?: string; choices?: Array<{ index: number; label: string; description: string }> }
+          // 新事件推送 - 个人频道 or 广播
+          const eventChannel = (message as Record<string, unknown>).channel as string | undefined
+          const eventData = message.data as { id: string; title: string; description: string; faction?: string; playerId?: string; choices?: Array<{ index: number; label: string; description: string }> }
+          // 如果是个人事件且有playerId，检查是否匹配当前玩家
+          if (eventData.playerId && eventChannel?.startsWith('player:')) {
+            if (eventData.playerId !== player.id) {
+              // 不匹配当前玩家，忽略
+              break
+            }
+          }
           // 构建新事件对象
           const newEvent = {
             id: eventData.id,
@@ -94,25 +115,31 @@ export function useWebSocket() {
           break
 
         case 'event_update':
-          // 事件状态更新
+          // 事件状态更新 - 广播
           const updateData = message.data as { eventId: string; status: string }
           addNotification(createNotification('info', '事件更新', `事件状态变为: ${updateData.status}`))
           break
 
         case 'world_update':
-          // 世界状态更新
+          // 世界状态更新 - 广播
           addNotification(createNotification('info', '世界变化', '世界状态已更新'))
           break
 
         case 'player_death':
-          // 玩家死亡通知
+          // 玩家死亡通知 - 个人频道
           const deathData = message.data as { playerId: string; reason: string }
-          addNotification(createNotification('danger', '角色死亡', deathData.reason, 0))
+          // 仅处理当前玩家或无playerId（广播）
+          if (!deathData.playerId || deathData.playerId === player.id) {
+            addNotification(createNotification('danger', '角色死亡', deathData.reason, 0))
+          }
           break
 
         case 'notification':
-          // 通用通知
-          const notifData = message.data as { title: string; message: string; type?: string }
+          // 通用通知 - 支持个人和广播
+          const notifData = message.data as { title: string; message: string; type?: string; playerId?: string }
+          if (notifData.playerId && notifData.playerId !== player.id) {
+            break
+          }
           addNotification(createNotification(
             (notifData.type as 'info' | 'warning' | 'danger' | 'success') || 'info',
             notifData.title,
@@ -121,7 +148,7 @@ export function useWebSocket() {
           break
 
         case 'agent_task':
-          // Agent任务完成通知
+          // Agent任务完成通知 - 广播
           const taskData = message.data as { agentId: string; taskType: string; status: string }
           if (taskData.status === 'completed') {
             addNotification(createNotification('success', 'Agent任务完成', `${taskData.agentId}: ${taskData.taskType}`))
@@ -140,7 +167,7 @@ export function useWebSocket() {
     } catch (err) {
       console.error('[WebSocket] Failed to parse message:', err)
     }
-  }, [addMessage, addNotification, setStatus, setActiveEvents, currentDay])
+  }, [addMessage, addNotification, setStatus, setActiveEvents, currentDay, player.id])
 
   // 发送心跳
   const sendPing = useCallback(() => {
@@ -171,8 +198,16 @@ export function useWebSocket() {
 
         // 发送认证（如果有token）
         const token = localStorage.getItem('auth_token')
+        const userId = localStorage.getItem('user_id')
         if (token) {
           ws.send(JSON.stringify({ type: 'auth', token }))
+        }
+
+        // 订阅个人频道 player:{playerId}
+        if (userId) {
+          const playerChannel = `player:${userId}`
+          ws.send(JSON.stringify({ type: 'subscribe', channel: playerChannel }))
+          console.log(`[WebSocket] Subscribing to personal channel: ${playerChannel}`)
         }
 
         // 开始心跳
@@ -263,6 +298,17 @@ export function useWebSocket() {
       disconnectRef.current?.()
     }
   }, []) // 空依赖，只挂载/卸载时执行
+
+  // 玩家登录后自动订阅个人频道
+  useEffect(() => {
+    if (player.id && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const playerChannel = `player:${player.id}`
+      if (!subscribedChannels.current.has(playerChannel)) {
+        wsRef.current.send(JSON.stringify({ type: 'subscribe', channel: playerChannel }))
+        console.log(`[WebSocket] Subscribing to personal channel: ${playerChannel}`)
+      }
+    }
+  }, [player.id])
 
   return {
     status,

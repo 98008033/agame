@@ -591,7 +591,7 @@ export default router;
 router.get('/decisions/:id/impact', async (req: Request, res: Response): Promise<void> => {
   const requestId = req.requestId ?? generateRequestId();
   const playerId = req.playerId;
-  const decisionId = parseInt(req.params['id']);
+  const decisionId = parseInt(req.params['id'] ?? '');
 
   if (!playerId) {
     res.status(401).json(createErrorResponse('UNAUTHORIZED', '未授权访问', requestId));
