@@ -1,0 +1,124 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "language": {
+    "chinese": "中文",
+    "english": "English"
+  },
+  "nav": {
+    "home": "Home",
+    "novel": "Novel",
+    "game": "Game",
+    "status": "Status",
+    "news": "News",
+    "plan": "Plan",
+    "dialog": "Dialog",
+    "map": "Map",
+    "skills": "Skills",
+    "factions": "Factions",
+    "actions": "Actions"
+  },
+  "dashboard": {
+    "title": "Agame",
+    "welcome": "Welcome, {{name}}",
+    "subtitle": "You are currently at {{location}}",
+    "subtitle_unknown": "Unknown Land",
+    "tagline": "In these chaotic times, every choice shapes your destiny...",
+    "day": "Day {{day}}",
+    "era": {
+      "power_struggle": "Power Struggle Era",
+      "war_prep": "War Preparation Era",
+      "chaos": "Chaos Era",
+      "resolution": "Resolution Era",
+      "unknown": "Unknown Era"
+    },
+    "modules": {
+      "title": "Features",
+      "plan": {
+        "title": "Today's Plan",
+        "desc": "Arrange your actions today, spend AP to complete tasks"
+      },
+      "news": {
+        "title": "Daily Morning News",
+        "desc": "Stay informed about world events and faction movements"
+      },
+      "status": {
+        "title": "Personal Status",
+        "desc": "View attributes, reputation, and resources"
+      },
+      "novel": {
+        "title": "Novel Reading",
+        "desc": "Immersive story experience"
+      },
+      "game": {
+        "title": "Game Decisions",
+        "desc": "Handle pending events"
+      }
+    },
+    "quickEntries": {
+      "title": "Quick Access",
+      "actions": "Today's Actions",
+      "dialog": "NPC Dialog",
+      "eventHistory": "Event History",
+      "factions": "Factions Overview",
+      "map": "World Map",
+      "skills": "Skill Tree"
+    },
+    "stats": {
+      "gold": "Gold",
+      "pendingEvents": "Pending Events",
+      "factionReputation": "Faction Reputation",
+      "reputation_friendly": "Friendly",
+      "reputation_neutral": "Neutral"
+    },
+    "ap": {
+      "title": "Action Points AP",
+      "current": "Current",
+      "consumed": "Consumed",
+      "button": "Today's Actions"
+    },
+    "recentHistory": {
+      "title": "Recent Decisions",
+      "default_event": "Event",
+      "default_result": "Processed"
+    },
+    "noCharacter": {
+      "title": "Create Your Character",
+      "desc": "Start your adventure, choose a faction and origin",
+      "button": "Create Now"
+    }
+  },
+  "login": {
+    "title": "Agame",
+    "subtitle": "Write your legend in chaotic times",
+    "login": "Login",
+    "register": "Register",
+    "guest": "Guest",
+    "username": "Username",
+    "usernamePlaceholder": "Enter username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "characterName": "Character Name",
+    "guestNamePlaceholder": "Traveler_xxxx",
+    "registerNamePlaceholder": "Defaults to username",
+    "guestHint": "Guest Mode: Quick play, data is not persistently saved",
+    "submit_loading": "Processing...",
+    "submit_login": "Login",
+    "submit_register": "Register",
+    "submit_guest": "Quick Start",
+    "features_title": "Game Features",
+    "features": [
+      "Four factions博弈, shaping the world order",
+      "Daily morning news for world events",
+      "Novel-style narrative experience",
+      "Key decisions change the course of history"
+    ],
+    "checking": "Verifying login status..."
+  }
+}

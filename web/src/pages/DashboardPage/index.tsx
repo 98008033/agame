@@ -1,13 +1,14 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useGameStore } from '../../stores/gameStore'
 import { actionApi, playerApi } from '../../services'
-import { UserAvatarMenu } from '../../components'
+import { UserAvatarMenu, LanguageSwitcher } from '../../components'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const player = usePlayerStore((s) => s.player)
   const currentDay = useGameStore((s) => s.currentDay)
   const historyStage = useGameStore((s) => s.historyStage)
@@ -41,8 +42,8 @@ export default function DashboardPage() {
   const modules = [
     {
       id: 'plan',
-      title: '今日计划',
-      desc: '安排今日行动，消耗AP完成任务',
+      title: t('dashboard.modules.plan.title'),
+      desc: t('dashboard.modules.plan.desc'),
       icon: '📋',
       path: '/plan',
       accent: 'var(--accent-purple)',
@@ -50,32 +51,32 @@ export default function DashboardPage() {
     },
     {
       id: 'news',
-      title: '每日晨报',
-      desc: '了解天下大事，掌握各方动向',
+      title: t('dashboard.modules.news.title'),
+      desc: t('dashboard.modules.news.desc'),
       icon: '📰',
       path: '/news',
       accent: 'var(--accent-blue)'
     },
     {
       id: 'status',
-      title: '个人状态',
-      desc: '查看属性、声望、资源',
+      title: t('dashboard.modules.status.title'),
+      desc: t('dashboard.modules.status.desc'),
       icon: '👤',
       path: '/status',
       accent: 'var(--accent-green)'
     },
     {
       id: 'novel',
-      title: '小说阅读',
-      desc: '沉浸式剧情体验',
+      title: t('dashboard.modules.novel.title'),
+      desc: t('dashboard.modules.novel.desc'),
       icon: '📖',
       path: '/novel',
       accent: 'var(--accent-gold)'
     },
     {
       id: 'game',
-      title: '游戏决策',
-      desc: '处理待办事件',
+      title: t('dashboard.modules.game.title'),
+      desc: t('dashboard.modules.game.desc'),
       icon: '⚔️',
       path: '/game',
       accent: 'var(--accent-red)'
@@ -84,19 +85,24 @@ export default function DashboardPage() {
 
   // 快捷入口 - 仅在有角色时显示
   const quickEntries = hasCharacter ? [
-    { id: 'actions', title: '今日行动', icon: '🎯', path: '/actions', accent: 'var(--accent-purple)' },
-    { id: 'dialog', title: 'NPC对话', icon: '💬', path: '/dialog', accent: 'var(--accent-blue)' },
-    { id: 'event-history', title: '事件历史', icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
-    { id: 'factions', title: '派系总览', icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
-    { id: 'map', title: '世界地图', icon: '🗺️', path: '/map', accent: 'var(--accent-green)' },
-    { id: 'skills', title: '技能树', icon: '🌳', path: '/skills', accent: 'var(--accent-gold)' },
+    { id: 'actions', title: t('dashboard.quickEntries.actions'), icon: '🎯', path: '/actions', accent: 'var(--accent-purple)' },
+    { id: 'dialog', title: t('dashboard.quickEntries.dialog'), icon: '💬', path: '/dialog', accent: 'var(--accent-blue)' },
+    { id: 'event-history', title: t('dashboard.quickEntries.eventHistory'), icon: '📜', path: '/event-history', accent: 'var(--accent-gold)' },
+    { id: 'factions', title: t('dashboard.quickEntries.factions'), icon: '🏰', path: '/factions', accent: 'var(--faction-canglong)' },
+    { id: 'map', title: t('dashboard.quickEntries.map'), icon: '🗺️', path: '/map', accent: 'var(--accent-green)' },
+    { id: 'skills', title: t('dashboard.quickEntries.skills'), icon: '🌳', path: '/skills', accent: 'var(--accent-gold)' },
   ] : []
 
   const stageNames: Record<string, string> = {
-    era_power_struggle: '权力博弈期',
-    era_war_prep: '战争酝酿期',
-    era_chaos: '动荡期',
-    era_resolution: '决局期'
+    era_power_struggle: t('dashboard.era.power_struggle'),
+    era_war_prep: t('dashboard.era.war_prep'),
+    era_chaos: t('dashboard.era.chaos'),
+    era_resolution: t('dashboard.era.resolution')
+  }
+
+  const getFactionLocation = () => {
+    if (player?.faction === 'border') return '边境联盟·暮光村'
+    return player?.faction || t('dashboard.subtitle_unknown')
   }
 
   return (
@@ -107,11 +113,13 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold text-[var(--accent-gold)] font-display">Agame</h1>
             <p className="text-[var(--text-secondary)] text-sm">
-              第{currentDay}日 · {stageNames[historyStage] || '未知时期'}
+              {t('dashboard.day', { day: currentDay })} · {stageNames[historyStage] || t('dashboard.era.unknown')}
             </p>
           </div>
-          {/* 用户头像菜单 */}
-          <UserAvatarMenu />
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <UserAvatarMenu />
+          </div>
         </div>
       </header>
 
@@ -125,9 +133,9 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🎯</span>
                   <div>
-                    <h3 className="font-bold text-[var(--accent-purple)] font-display">行动点数 AP</h3>
+                    <h3 className="font-bold text-[var(--accent-purple)] font-display">{t('dashboard.ap.title')}</h3>
                     <span className="text-sm text-[var(--text-secondary)]">
-                      当前: {apStatus.current}/{apStatus.max} · 已消耗: {apStatus.consumed}
+                      {t('dashboard.ap.current')}: {apStatus.current}/{apStatus.max} · {t('dashboard.ap.consumed')}: {apStatus.consumed}
                     </span>
                   </div>
                 </div>
@@ -136,7 +144,7 @@ export default function DashboardPage() {
                   className="btn-modern text-sm"
                   style={{ borderColor: 'var(--accent-purple)' }}
                 >
-                  今日行动
+                  {t('dashboard.ap.button')}
                 </button>
               </div>
               {/* AP进度条 */}
@@ -157,33 +165,33 @@ export default function DashboardPage() {
         <section className="mb-8">
           <div className="card-modern-alt border-[var(--accent-gold)]/30">
             <h2 className="text-2xl font-bold text-[var(--accent-gold)] mb-2 font-display">
-              欢迎，{player?.name || '旅行者'}
+              {t('dashboard.welcome', { name: player?.name || '旅行者' })}
             </h2>
             <p className="text-[var(--text-primary)]">
-              你当前位于{player?.faction === 'border' ? '边境联盟·暮光村' : player?.faction || '未知之地'}
+              {t('dashboard.subtitle', { location: getFactionLocation() })}
             </p>
             <p className="text-[var(--text-muted)] mt-2">
-              乱世之中，每一步选择都将影响你的命运...
+              {t('dashboard.tagline')}
             </p>
           </div>
         </section>
 
         {/* Function Modules */}
         <section>
-          <h3 className="text-[var(--text-secondary)] font-medium mb-4">功能入口</h3>
+          <h3 className="text-[var(--text-secondary)] font-medium mb-4">{t('dashboard.modules.title')}</h3>
 
           {/* 新玩家提示 - 创建角色入口 */}
           {!player?.id && (
             <div className="mb-6 card-modern bg-[var(--accent-purple)]/20 border-[var(--accent-purple)]">
               <div className="text-center">
                 <span className="text-4xl mb-3 block">🎭</span>
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">创建你的角色</h4>
-                <p className="text-[var(--text-secondary)] mb-4">开始你的冒险之旅，选择阵营与出身</p>
+                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">{t('dashboard.noCharacter.title')}</h4>
+                <p className="text-[var(--text-secondary)] mb-4">{t('dashboard.noCharacter.desc')}</p>
                 <button
                   onClick={() => navigate('/character/create')}
                   className="btn-primary px-6 py-3 font-bold"
                 >
-                  立即创建
+                  {t('dashboard.noCharacter.button')}
                 </button>
               </div>
             </div>
@@ -210,7 +218,7 @@ export default function DashboardPage() {
         {/* 快捷入口 - 仅在有角色时显示 */}
         {hasCharacter && quickEntries.length > 0 && (
           <section className="mt-8">
-            <h3 className="text-[var(--text-secondary)] font-medium mb-4">快捷入口</h3>
+            <h3 className="text-[var(--text-secondary)] font-medium mb-4">{t('dashboard.quickEntries.title')}</h3>
             <div className="grid grid-cols-3 gap-3">
               {quickEntries.map((entry) => (
                 <button
@@ -230,13 +238,13 @@ export default function DashboardPage() {
         {/* 最近决策历史 - 仅在有角色时显示 */}
         {hasCharacter && recentHistory && recentHistory.length > 0 && (
           <section className="mt-8">
-            <h3 className="text-[var(--text-secondary)] font-medium mb-4">最近决策</h3>
+            <h3 className="text-[var(--text-secondary)] font-medium mb-4">{t('dashboard.recentHistory.title')}</h3>
             <div className="space-y-2">
               {recentHistory.map((item: Record<string, unknown>, index: number) => (
                 <div key={index} className="card-modern-alt flex items-center justify-between">
                   <div>
-                    <span className="font-medium text-sm text-[var(--text-primary)]">{String(item.eventTitle || item.eventId || '事件')}</span>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">{String(item.result || item.description || '已处理')}</p>
+                    <span className="font-medium text-sm text-[var(--text-primary)]">{String(item.eventTitle || item.eventId || t('dashboard.recentHistory.default_event'))}</span>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">{String(item.result || item.description || t('dashboard.recentHistory.default_result'))}</p>
                   </div>
                   {item.timestamp && (
                     <span className="text-xs text-[var(--text-muted)]">{String(item.timestamp).slice(0, 16)}</span>
@@ -251,17 +259,17 @@ export default function DashboardPage() {
         <section className="mt-8">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">金币</p>
+              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.gold')}</p>
               <p className="text-[var(--accent-gold)] font-bold text-xl">{player?.resources?.gold || 0}</p>
             </div>
             <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">待处理事件</p>
+              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.pendingEvents')}</p>
               <p className="text-[var(--accent-red)] font-bold text-xl">0</p>
             </div>
             <div className="card-modern-alt">
-              <p className="text-[var(--text-muted)] text-sm">阵营声望</p>
+              <p className="text-[var(--text-muted)] text-sm">{t('dashboard.stats.factionReputation')}</p>
               <p className="text-[var(--accent-green)] font-bold text-xl">
-                {player?.factionLevel === 'friendly' ? '友好' : player?.factionLevel || '中立'}
+                {player?.factionLevel === 'friendly' ? t('dashboard.stats.reputation_friendly') : player?.factionLevel || t('dashboard.stats.reputation_neutral')}
               </p>
             </div>
           </div>

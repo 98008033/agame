@@ -41,6 +41,9 @@ export {
   EventScrollComponent,
 } from './NarrativeCarriers'
 
+// 语言切换组件
+export { default as LanguageSwitcher } from './LanguageSwitcher'
+
 export type {
   MorningNewsData,
   NewsSection,

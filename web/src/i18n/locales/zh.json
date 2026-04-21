@@ -1,0 +1,124 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "back": "返回",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认"
+  },
+  "language": {
+    "chinese": "中文",
+    "english": "English"
+  },
+  "nav": {
+    "home": "首页",
+    "novel": "小说",
+    "game": "游戏",
+    "status": "状态",
+    "news": "新闻",
+    "plan": "计划",
+    "dialog": "对话",
+    "map": "地图",
+    "skills": "技能",
+    "factions": "派系",
+    "actions": "行动"
+  },
+  "dashboard": {
+    "title": "Agame",
+    "welcome": "欢迎，{{name}}",
+    "subtitle": "你当前位于{{location}}",
+    "subtitle_unknown": "未知之地",
+    "tagline": "乱世之中，每一步选择都将影响你的命运...",
+    "day": "第{{day}}日",
+    "era": {
+      "power_struggle": "权力博弈期",
+      "war_prep": "战争酝酿期",
+      "chaos": "动荡期",
+      "resolution": "决局期",
+      "unknown": "未知时期"
+    },
+    "modules": {
+      "title": "功能入口",
+      "plan": {
+        "title": "今日计划",
+        "desc": "安排今日行动，消耗AP完成任务"
+      },
+      "news": {
+        "title": "每日晨报",
+        "desc": "了解天下大事，掌握各方动向"
+      },
+      "status": {
+        "title": "个人状态",
+        "desc": "查看属性、声望、资源"
+      },
+      "novel": {
+        "title": "小说阅读",
+        "desc": "沉浸式剧情体验"
+      },
+      "game": {
+        "title": "游戏决策",
+        "desc": "处理待办事件"
+      }
+    },
+    "quickEntries": {
+      "title": "快捷入口",
+      "actions": "今日行动",
+      "dialog": "NPC对话",
+      "eventHistory": "事件历史",
+      "factions": "派系总览",
+      "map": "世界地图",
+      "skills": "技能树"
+    },
+    "stats": {
+      "gold": "金币",
+      "pendingEvents": "待处理事件",
+      "factionReputation": "阵营声望",
+      "reputation_friendly": "友好",
+      "reputation_neutral": "中立"
+    },
+    "ap": {
+      "title": "行动点数 AP",
+      "current": "当前",
+      "consumed": "已消耗",
+      "button": "今日行动"
+    },
+    "recentHistory": {
+      "title": "最近决策",
+      "default_event": "事件",
+      "default_result": "已处理"
+    },
+    "noCharacter": {
+      "title": "创建你的角色",
+      "desc": "开始你的冒险之旅，选择阵营与出身",
+      "button": "立即创建"
+    }
+  },
+  "login": {
+    "title": "Agame",
+    "subtitle": "在乱世中书写你的传奇",
+    "login": "登录",
+    "register": "注册",
+    "guest": "游客",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "characterName": "角色名称",
+    "guestNamePlaceholder": "旅行者_xxxx",
+    "registerNamePlaceholder": "默认使用用户名",
+    "guestHint": "游客模式：快速体验，数据不持久保存",
+    "submit_loading": "处理中...",
+    "submit_login": "登录",
+    "submit_register": "注册",
+    "submit_guest": "快速开始",
+    "features_title": "游戏特色",
+    "features": [
+      "四大阵营博弈，影响世界格局",
+      "每日晨报了解天下大事",
+      "小说式叙事体验剧情",
+      "关键决策改变历史走向"
+    ],
+    "checking": "验证登录状态..."
+  }
+}
