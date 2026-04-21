@@ -23,6 +23,9 @@ export { default as SocialClassProgressBar } from './SocialClassProgressBar'
 // NPC关系卡片
 export { default as NPCRelationshipCard } from './NPCRelationshipCard'
 
+// 玩家成长组件
+export { default as PlayerGrowth } from './PlayerGrowth'
+
 // WebSocket通知组件
 export { default as NotificationToast } from './NotificationToast'
 
